@@ -1,23 +1,44 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, Suspense } from 'react';
 import { SkillLevel, ViewMode, StoryData, VocabularyWord } from '@/types';
-import { cedictDictionary } from '@/data/cedict-dictionary';
+import type { DictionaryEntry } from '@/data/cedict-dictionary';
 
-// Build lookup maps for fast access
-const pinyinMap = new Map();
-const charMap = new Map();
-for (const entry of cedictDictionary) {
-  // Normalize pinyin (remove tone numbers and spaces)
-  const normalizedPinyin = entry.pinyin.toLowerCase().replace(/[0-9]/g, '').replace(/\s+/g, '');
-  if (!pinyinMap.has(normalizedPinyin)) {
-    pinyinMap.set(normalizedPinyin, entry);
+// Lazy load the dictionary to prevent mobile memory issues
+let cedictDictionary: DictionaryEntry[] = [];
+let pinyinMap: Map<string, DictionaryEntry> | null = null;
+let charMap: Map<string, DictionaryEntry> | null = null;
+let dictionaryLoaded = false;
+
+const loadDictionary = async () => {
+  if (dictionaryLoaded) return;
+  
+  try {
+    const { cedictDictionary: dict } = await import('@/data/cedict-dictionary');
+    cedictDictionary = dict;
+    
+    // Build lookup maps for fast access
+    pinyinMap = new Map();
+    charMap = new Map();
+    
+    for (const entry of cedictDictionary) {
+      // Normalize pinyin (remove tone numbers and spaces)
+      const normalizedPinyin = entry.pinyin.toLowerCase().replace(/[0-9]/g, '').replace(/\s+/g, '');
+      if (!pinyinMap.has(normalizedPinyin)) {
+        pinyinMap.set(normalizedPinyin, entry);
+      }
+      // Only map single characters for charMap
+      if (entry.chinese.length === 1 && !charMap.has(entry.chinese)) {
+        charMap.set(entry.chinese, entry);
+      }
+    }
+    
+    dictionaryLoaded = true;
+  } catch (error) {
+    console.error('Failed to load dictionary:', error);
+    // Continue without dictionary - tooltips will show "not available"
   }
-  // Only map single characters for charMap
-  if (entry.chinese.length === 1 && !charMap.has(entry.chinese)) {
-    charMap.set(entry.chinese, entry);
-  }
-}
+};
 
 export default function Home() {
   const [skillLevel, setSkillLevel] = useState<SkillLevel>('HSK1');
@@ -29,19 +50,30 @@ export default function Home() {
   const [savedVocabulary, setSavedVocabulary] = useState<VocabularyWord[]>([]);
   const [hoveredWord, setHoveredWord] = useState<{pinyin: string, chinese: string, english: string} | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+  const [dictionaryReady, setDictionaryReady] = useState(false);
   const tooltipRef = useRef<HTMLDivElement>(null);
+
+  // Load dictionary on component mount
+  useEffect(() => {
+    loadDictionary().then(() => {
+      setDictionaryReady(true);
+    });
+  }, []);
 
   // Optimized function to get accurate translation for a Pinyin word using the Map
   const getAccurateTranslation = (pinyin: string, context?: { before?: string, after?: string }) => {
+    if (!pinyinMap) return null;
     const normalizedPinyin = pinyin.toLowerCase().replace(/[0-9]/g, '').replace(/\s+/g, '');
     return pinyinMap.get(normalizedPinyin) || null;
   };
 
   // Optimized function to get any available translation with fallback
   const getAnyAvailableTranslation = (pinyin: string, chineseChars?: string) => {
+    if (!dictionaryReady) return null;
+    
     const translation = getAccurateTranslation(pinyin);
     if (translation) return translation;
-    if (chineseChars && charMap.has(chineseChars)) {
+    if (chineseChars && charMap && charMap.has(chineseChars)) {
       return charMap.get(chineseChars);
     }
     return null;

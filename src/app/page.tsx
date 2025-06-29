@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { SkillLevel, ViewMode, StoryData, VocabularyWord } from '@/types';
+import { getPinyinTranslation, getContextAwareTranslation } from '@/data/pinyin-dictionary';
 
 export default function Home() {
   const [skillLevel, setSkillLevel] = useState<SkillLevel>('easy');
@@ -15,28 +16,24 @@ export default function Home() {
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   const tooltipRef = useRef<HTMLDivElement>(null);
 
-  // Function to create pinyin-to-translation mapping
-  const createPinyinMapping = (chinese: string, pinyin: string, english: string) => {
-    const chineseChars = chinese.split('');
-    const pinyinWords = pinyin.split(' ');
-    const englishWords = english.split(' ');
-    
-    const mapping: {[key: string]: {chinese: string, english: string}} = {};
-    
-    // Map each pinyin word to its corresponding Chinese character(s) and English
-    pinyinWords.forEach((pinyinWord, index) => {
-      if (pinyinWord.trim() && englishWords[index]) {
-        // Find the corresponding Chinese character(s) for this pinyin word
-        // This is a simplified approach - in practice, you might want more sophisticated mapping
-        const chineseChar = chineseChars[index] || '';
-        mapping[pinyinWord] = {
-          chinese: chineseChar,
-          english: englishWords[index]
-        };
+  // Function to get accurate translation for a Pinyin word
+  const getAccurateTranslation = (pinyin: string, context?: { before?: string, after?: string }) => {
+    // Try context-aware translation first
+    if (context) {
+      const contextTranslation = getContextAwareTranslation(pinyin, context);
+      if (contextTranslation) {
+        return contextTranslation;
       }
-    });
+    }
     
-    return mapping;
+    // Fall back to basic dictionary lookup
+    const translation = getPinyinTranslation(pinyin);
+    if (translation) {
+      return translation;
+    }
+    
+    // If no translation found, return null
+    return null;
   };
 
   // Handle mouse move for tooltip positioning
@@ -55,15 +52,19 @@ export default function Home() {
     setHoveredWord(null);
   };
 
-  // Render Pinyin text with hover functionality
+  // Render Pinyin text with hover functionality using accurate translations
   const renderPinyinText = (chinese: string, pinyin: string, english: string) => {
-    const pinyinMapping = createPinyinMapping(chinese, pinyin, english);
-    
     // Split pinyin into words
     const pinyinWords = pinyin.split(' ');
     
     return pinyinWords.map((word, index) => {
-      const translation = pinyinMapping[word];
+      // Get context for better translation accuracy
+      const context = {
+        before: pinyinWords[index - 1],
+        after: pinyinWords[index + 1]
+      };
+      
+      const translation = getAccurateTranslation(word, context);
       
       if (!translation) {
         return <span key={index}>{word} </span>;
@@ -144,9 +145,6 @@ export default function Home() {
 
   const renderStoryContent = () => {
     if (!story) return null;
-
-    // Create character mapping for hover functionality
-    const charMapping = createPinyinMapping(story.chinese, story.pinyin, story.english);
 
     switch (viewMode) {
       case 'chinese':

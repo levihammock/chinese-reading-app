@@ -149,7 +149,25 @@ export default function Home() {
         setStory(data);
       } else {
         console.error('API Error:', data);
-        setError(data.error || 'Failed to generate story. Please try again.');
+        
+        // Provide more specific error messages based on the error type
+        let errorMessage = data.error || 'Failed to generate story. Please try again.';
+        
+        if (data.error === 'Invalid story format received from AI') {
+          errorMessage = 'The AI generated an invalid response format. This sometimes happens with complex topics. Please try a different subject or try again.';
+        } else if (data.error === 'Failed to generate properly formatted story') {
+          errorMessage = 'The AI response could not be parsed correctly. This is usually a temporary issue. Please try again with a simpler topic.';
+        } else if (data.error === 'Rate limit exceeded') {
+          errorMessage = 'Too many requests. Please wait a moment and try again.';
+        } else if (data.error === 'Invalid API key') {
+          errorMessage = 'API configuration error. Please contact support.';
+        } else if (data.error === 'Network connection error. Please check your internet connection and try again.') {
+          errorMessage = 'Network connection issue. Please check your internet connection and try again.';
+        } else if (data.details) {
+          errorMessage = `${data.error}: ${data.details}`;
+        }
+        
+        setError(errorMessage);
       }
     } catch (error) {
       console.error('Network Error:', error);
@@ -272,11 +290,33 @@ export default function Home() {
         {/* Error Message */}
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-8">
-            <div className="flex items-center">
-              <div className="text-red-600 mr-3">⚠️</div>
-              <div>
-                <h3 className="text-red-800 font-semibold">Error</h3>
-                <p className="text-red-700">{error}</p>
+            <div className="flex items-start">
+              <div className="text-red-600 mr-3 mt-1">⚠️</div>
+              <div className="flex-1">
+                <h3 className="text-red-800 font-semibold mb-2">Error</h3>
+                <p className="text-red-700 mb-3">{error}</p>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <button
+                    onClick={generateStory}
+                    disabled={isLoading}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors duration-200"
+                  >
+                    {isLoading ? 'Retrying...' : 'Try Again'}
+                  </button>
+                  <button
+                    onClick={() => setError(null)}
+                    className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors duration-200"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+                {error.includes('complex topics') && (
+                  <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-yellow-800 text-sm">
+                      <strong>Tip:</strong> Try simpler topics like "cat", "food", "family", or "weather" for better results.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>

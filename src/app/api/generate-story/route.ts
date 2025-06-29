@@ -24,6 +24,26 @@ const generateFallbackStory = (skillLevel: string, subject: string) => {
   return stories[skillLevel as keyof typeof stories] || stories.easy;
 };
 
+// Helper function to extract JSON from text that might contain extra content
+const extractJSONFromText = (text: string) => {
+  try {
+    // First, try to parse the entire text as JSON
+    return JSON.parse(text);
+  } catch (error) {
+    // If that fails, try to find JSON within the text
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      try {
+        return JSON.parse(jsonMatch[0]);
+      } catch (parseError) {
+        console.error('Failed to parse extracted JSON:', parseError);
+        return null;
+      }
+    }
+    return null;
+  }
+};
+
 export async function POST(request: NextRequest) {
   try {
     // Check if API key is available
@@ -83,18 +103,22 @@ REQUIREMENTS:
 - Use appropriate grammar for ${skillLevel} level
 - Ensure the story is culturally appropriate and family-friendly
 
-OUTPUT FORMAT: Provide ONLY a valid JSON object with these exact fields:
+CRITICAL: You must respond with ONLY a valid JSON object. Do not include any text before or after the JSON.
+
+OUTPUT FORMAT (respond with ONLY this JSON structure):
 {
   "chinese": "Simplified Chinese text here",
   "pinyin": "Pinyin with tone marks here", 
   "english": "English translation here"
 }
 
-IMPORTANT: 
+IMPORTANT RULES:
 - The story must be specifically about "${subject}"
-- Do not include any explanations or additional text outside the JSON
+- Do not include any explanations, markdown, or additional text
+- Do not use backticks or code blocks
 - Ensure all three versions tell the same story
-- Make sure the JSON is properly formatted`;
+- Make sure the JSON is properly formatted with double quotes
+- Do not include any trailing commas`;
 
     console.log('Sending request to Claude...');
 
@@ -115,39 +139,51 @@ IMPORTANT:
       const content = message.content[0];
       
       if (content.type === 'text') {
-        try {
-          console.log('Raw response:', content.text);
+        console.log('Raw response length:', content.text.length);
+        console.log('Raw response preview:', content.text.substring(0, 200) + '...');
+        
+        // Try to extract and parse JSON from the response
+        const storyData = extractJSONFromText(content.text);
+        
+        if (storyData && storyData.chinese && storyData.pinyin && storyData.english) {
+          console.log('Successfully generated story');
+          console.log('Story validation:', {
+            chineseLength: storyData.chinese.length,
+            pinyinLength: storyData.pinyin.length,
+            englishLength: storyData.english.length,
+            hasChinese: !!storyData.chinese,
+            hasPinyin: !!storyData.pinyin,
+            hasEnglish: !!storyData.english
+          });
           
-          // Try to parse the JSON response
-          const storyData = JSON.parse(content.text);
+          return NextResponse.json({
+            ...storyData,
+            isAIGenerated: true
+          });
+        } else {
+          console.error('Invalid response structure or missing fields:', {
+            hasData: !!storyData,
+            hasChinese: storyData?.chinese,
+            hasPinyin: storyData?.pinyin,
+            hasEnglish: storyData?.english,
+            dataKeys: storyData ? Object.keys(storyData) : 'null'
+          });
           
-          // Validate the response structure
-          if (storyData.chinese && storyData.pinyin && storyData.english) {
-            console.log('Successfully generated story');
-            return NextResponse.json({
-              ...storyData,
-              isAIGenerated: true
-            });
-          } else {
-            console.error('Invalid response structure:', storyData);
-            return NextResponse.json(
-              { error: 'Invalid story format received from AI' },
-              { status: 500 }
-            );
-          }
-        } catch (parseError) {
-          // If JSON parsing fails, return an error
-          console.error('Failed to parse JSON response:', content.text);
-          console.error('Parse error:', parseError);
+          // Log the problematic response for debugging
+          console.error('Problematic response:', content.text);
+          
           return NextResponse.json(
-            { error: 'Failed to generate properly formatted story' },
+            { 
+              error: 'Invalid story format received from AI',
+              details: 'The AI response did not contain the required chinese, pinyin, and english fields'
+            },
             { status: 500 }
           );
         }
       } else {
         console.error('Unexpected content type:', content.type);
         return NextResponse.json(
-          { error: 'Unexpected response format' },
+          { error: 'Unexpected response format from AI service' },
           { status: 500 }
         );
       }

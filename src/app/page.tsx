@@ -42,10 +42,11 @@ export default function Home() {
   // Handle mouse move for tooltip positioning
   const handleMouseMove = (event: React.MouseEvent, pinyin: string, chinese: string, english: string) => {
     setHoveredWord({ pinyin, chinese, english });
-    // Position tooltip above the cursor
+    // Position tooltip above the specific word being hovered
+    const rect = event.currentTarget.getBoundingClientRect();
     setTooltipPosition({ 
-      x: event.clientX, 
-      y: event.clientY - 60 
+      x: rect.left + (rect.width / 2), 
+      y: rect.top - 10 
     });
   };
 
@@ -176,7 +177,7 @@ export default function Home() {
               </div>
             </div>
             <div className="text-lg leading-relaxed p-6 bg-white rounded-2xl shadow-lg">
-              <h3 className="text-lg font-semibold mb-4 text-orange-500">拼音</h3>
+              <h3 className="text-lg font-semibold mb-4 text-orange-500">Pinyin</h3>
               <div className="text-center">{renderPinyinText(story.chinese, story.pinyin, story.english)}</div>
             </div>
             <div className="text-lg leading-relaxed p-6 bg-white rounded-2xl shadow-lg">
@@ -270,7 +271,7 @@ export default function Home() {
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
-                  {mode === 'chinese' && 'Chinese'}
+                  {mode === 'chinese' && '中文'}
                   {mode === 'pinyin' && 'Pinyin'}
                   {mode === 'english' && 'English'}
                   {mode === 'all' && 'All Three'}
@@ -340,7 +341,7 @@ export default function Home() {
         {hoveredWord && (
           <div
             ref={tooltipRef}
-            className="fixed bg-gray-800 text-white px-4 py-3 rounded-lg shadow-lg z-50 pointer-events-none"
+            className="fixed bg-gray-800 text-white px-4 py-3 rounded-lg shadow-lg z-50 pointer-events-none transform -translate-x-1/2 -translate-y-full"
             style={{ left: tooltipPosition.x, top: tooltipPosition.y }}
           >
             <div className="text-sm">
@@ -348,6 +349,8 @@ export default function Home() {
               <div className="text-blue-300 mb-1">{hoveredWord.chinese}</div>
               <div className="text-gray-300">{hoveredWord.english}</div>
             </div>
+            {/* Arrow pointing down to the word */}
+            <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"></div>
           </div>
         )}
 

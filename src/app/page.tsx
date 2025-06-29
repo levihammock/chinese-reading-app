@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { SkillLevel, ViewMode, StoryData, VocabularyWord } from '@/types';
 
 export default function Home() {
@@ -11,27 +11,124 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedVocabulary, setSavedVocabulary] = useState<VocabularyWord[]>([]);
-  const [hoveredWord, setHoveredWord] = useState<{char: string, pinyin: string, english: string} | null>(null);
+  const [hoveredWord, setHoveredWord] = useState<{chars: string, pinyin: string, english: string} | null>(null);
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+  const tooltipRef = useRef<HTMLDivElement>(null);
 
-  // Function to create character-to-translation mapping
-  const createCharacterMapping = (chinese: string, pinyin: string, english: string) => {
+  // Function to create word-to-translation mapping with better grouping
+  const createWordMapping = (chinese: string, pinyin: string, english: string) => {
     const chineseChars = chinese.split('');
     const pinyinWords = pinyin.split(' ');
     const englishWords = english.split(' ');
     
     const mapping: {[key: string]: {pinyin: string, english: string}} = {};
     
-    // Simple mapping - each Chinese character gets the corresponding pinyin and english
+    // Group characters into words/phrases based on common patterns
+    let currentWord = '';
+    let currentPinyin = '';
+    let currentEnglish = '';
+    let wordIndex = 0;
+    
     chineseChars.forEach((char, index) => {
-      if (char.trim() && pinyinWords[index] && englishWords[index]) {
-        mapping[char] = {
-          pinyin: pinyinWords[index],
-          english: englishWords[index]
-        };
+      // Skip punctuation and spaces
+      if (char.trim() === '' || /[，。！？、；：""''（）【】]/.test(char)) {
+        if (currentWord) {
+          mapping[currentWord] = {
+            pinyin: currentPinyin.trim(),
+            english: currentEnglish.trim()
+          };
+          currentWord = '';
+          currentPinyin = '';
+          currentEnglish = '';
+        }
+        return;
+      }
+      
+      currentWord += char;
+      
+      // Add corresponding pinyin and english
+      if (pinyinWords[wordIndex]) {
+        currentPinyin += pinyinWords[wordIndex] + ' ';
+      }
+      if (englishWords[wordIndex]) {
+        currentEnglish += englishWords[wordIndex] + ' ';
+      }
+      wordIndex++;
+      
+      // End of word conditions (simplified logic)
+      const nextChar = chineseChars[index + 1];
+      if (!nextChar || nextChar.trim() === '' || /[，。！？、；：""''（）【】]/.test(nextChar)) {
+        if (currentWord) {
+          mapping[currentWord] = {
+            pinyin: currentPinyin.trim(),
+            english: currentEnglish.trim()
+          };
+          currentWord = '';
+          currentPinyin = '';
+          currentEnglish = '';
+        }
       }
     });
     
+    // Handle any remaining word
+    if (currentWord) {
+      mapping[currentWord] = {
+        pinyin: currentPinyin.trim(),
+        english: currentEnglish.trim()
+      };
+    }
+    
     return mapping;
+  };
+
+  // Handle mouse move for tooltip positioning
+  const handleMouseMove = (event: React.MouseEvent, chars: string, pinyin: string, english: string) => {
+    setHoveredWord({ chars, pinyin, english });
+    // Position tooltip with offset to prevent covering the text
+    setTooltipPosition({ 
+      x: event.clientX + 10, 
+      y: event.clientY - 10 
+    });
+  };
+
+  // Handle mouse leave
+  const handleMouseLeave = () => {
+    setHoveredWord(null);
+  };
+
+  // Render Chinese text with hover functionality
+  const renderChineseText = (chinese: string, pinyin: string, english: string) => {
+    const wordMapping = createWordMapping(chinese, pinyin, english);
+    
+    // Split text into words and punctuation
+    const segments = chinese.split(/([，。！？、；：""''（）【】\s])/);
+    
+    return segments.map((segment, index) => {
+      if (!segment.trim()) return null;
+      
+      const isPunctuation = /[，。！？、；：""''（）【】\s]/.test(segment);
+      
+      if (isPunctuation) {
+        return <span key={index}>{segment}</span>;
+      }
+      
+      const translation = wordMapping[segment];
+      
+      return (
+        <span
+          key={index}
+          className="inline-block cursor-pointer hover:bg-blue-100 rounded px-1 transition-colors duration-200"
+          onMouseMove={(e) => {
+            if (translation) {
+              handleMouseMove(e, segment, translation.pinyin, translation.english);
+            }
+          }}
+          onMouseLeave={handleMouseLeave}
+        >
+          {segment}
+        </span>
+      );
+    });
   };
 
   const generateStory = async () => {
@@ -83,31 +180,13 @@ export default function Home() {
     if (!story) return null;
 
     // Create character mapping for hover functionality
-    const charMapping = createCharacterMapping(story.chinese, story.pinyin, story.english);
+    const charMapping = createWordMapping(story.chinese, story.pinyin, story.english);
 
     switch (viewMode) {
       case 'chinese':
         return (
           <div className="text-2xl leading-relaxed text-center p-6 bg-white rounded-2xl shadow-lg">
-            {story.chinese.split('').map((char, index) => (
-              <span
-                key={index}
-                className="inline-block cursor-pointer hover:bg-blue-100 rounded px-1 transition-colors duration-200"
-                onMouseEnter={() => {
-                  const translation = charMapping[char];
-                  if (translation) {
-                    setHoveredWord({
-                      char: char,
-                      pinyin: translation.pinyin,
-                      english: translation.english
-                    });
-                  }
-                }}
-                onMouseLeave={() => setHoveredWord(null)}
-              >
-                {char}
-              </span>
-            ))}
+            {renderChineseText(story.chinese, story.pinyin, story.english)}
           </div>
         );
       case 'pinyin':
@@ -128,25 +207,7 @@ export default function Home() {
             <div className="text-xl leading-relaxed p-6 bg-white rounded-2xl shadow-lg">
               <h3 className="text-lg font-semibold mb-4 text-blue-600">中文</h3>
               <div className="text-center">
-                {story.chinese.split('').map((char, index) => (
-                  <span
-                    key={index}
-                    className="inline-block cursor-pointer hover:bg-blue-100 rounded px-1 transition-colors duration-200"
-                    onMouseEnter={() => {
-                      const translation = charMapping[char];
-                      if (translation) {
-                        setHoveredWord({
-                          char: char,
-                          pinyin: translation.pinyin,
-                          english: translation.english
-                        });
-                      }
-                    }}
-                    onMouseLeave={() => setHoveredWord(null)}
-                  >
-                    {char}
-                  </span>
-                ))}
+                {renderChineseText(story.chinese, story.pinyin, story.english)}
               </div>
             </div>
             <div className="text-lg leading-relaxed p-6 bg-white rounded-2xl shadow-lg">
@@ -244,8 +305,8 @@ export default function Home() {
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
-                  {mode === 'chinese' && '中文'}
-                  {mode === 'pinyin' && '拼音'}
+                  {mode === 'chinese' && 'Chinese'}
+                  {mode === 'pinyin' && 'Pinyin'}
                   {mode === 'english' && 'English'}
                   {mode === 'all' && 'All Three'}
                 </button>
@@ -312,9 +373,13 @@ export default function Home() {
 
         {/* Hover Tooltip */}
         {hoveredWord && (
-          <div className="fixed bg-gray-800 text-white px-4 py-3 rounded-lg shadow-lg z-50 pointer-events-none">
+          <div
+            ref={tooltipRef}
+            className="fixed bg-gray-800 text-white px-4 py-3 rounded-lg shadow-lg z-50 pointer-events-none"
+            style={{ left: tooltipPosition.x, top: tooltipPosition.y }}
+          >
             <div className="text-sm">
-              <div className="font-bold text-lg mb-1">{hoveredWord.char}</div>
+              <div className="font-bold text-lg mb-1">{hoveredWord.chars}</div>
               <div className="text-blue-300 mb-1">{hoveredWord.pinyin}</div>
               <div className="text-gray-300">{hoveredWord.english}</div>
             </div>

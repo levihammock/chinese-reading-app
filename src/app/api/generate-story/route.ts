@@ -4,24 +4,39 @@ import Anthropic from '@anthropic-ai/sdk';
 // Fallback story generator for when API is unavailable
 const generateFallbackStory = (skillLevel: string, subject: string) => {
   const stories = {
-    easy: {
+    HSK1: {
       chinese: "小猫喜欢玩球。它每天都很开心。",
       pinyin: "Xiǎo māo xǐhuān wán qiú. Tā měi tiān dōu hěn kāixīn.",
       english: "The little cat likes to play with a ball. It is very happy every day."
     },
-    medium: {
+    HSK2: {
       chinese: "小明和他的朋友一起去公园。他们看到了很多美丽的花。天气很好，大家都很高兴。",
       pinyin: "Xiǎo Míng hé tā de péngyou yīqǐ qù gōngyuán. Tāmen kàn dào le hěn duō měilì de huā. Tiānqì hěn hǎo, dàjiā dōu hěn gāoxìng.",
       english: "Xiao Ming and his friend went to the park together. They saw many beautiful flowers. The weather was nice, and everyone was happy."
     },
-    hard: {
+    HSK3: {
       chinese: "昨天下午，我和家人去了博物馆。那里有很多有趣的历史文物。我们学到了很多关于古代中国的知识。参观结束后，我们在附近的餐厅吃了晚饭。",
       pinyin: "Zuótiān xiàwǔ, wǒ hé jiārén qù le bówùguǎn. Nàlǐ yǒu hěn duō yǒuqù de lìshǐ wénwù. Wǒmen xué dào le hěn duō guānyú gǔdài Zhōngguó de zhīshi. Cānguān jiéshù hòu, wǒmen zài fùjìn de cāntīng chī le wǎnfàn.",
       english: "Yesterday afternoon, my family and I went to the museum. There were many interesting historical artifacts there. We learned a lot about ancient China. After the visit, we had dinner at a nearby restaurant."
+    },
+    HSK4: {
+      chinese: "上个月，我参加了一个中国文化交流活动。活动期间，我们学习了传统书法和国画技巧。老师耐心地教导我们如何握笔和运笔。虽然一开始很困难，但经过练习，我们都取得了很大进步。这次经历让我对中国传统文化有了更深的理解和欣赏。",
+      pinyin: "Shàng gè yuè, wǒ cānjiā le yī gè Zhōngguó wénhuà jiāoliú huódòng. Huódòng qījiān, wǒmen xuéxí le chuántǒng shūfǎ hé guóhuà jìqiǎo. Lǎoshī nàixīn de jiàodǎo wǒmen rúhé wò bǐ hé yùn bǐ. Suīrán yī kāishǐ hěn kùnnan, dàn jīngguò liànxí, wǒmen dōu qǔdé le hěn dà jìnbù. Zhè cì jīnglì ràng wǒ duì Zhōngguó chuántǒng wénhuà yǒu le gèng shēn de lǐjiě hé xīnshǎng.",
+      english: "Last month, I participated in a Chinese cultural exchange activity. During the event, we learned traditional calligraphy and Chinese painting techniques. The teacher patiently taught us how to hold and use the brush. Although it was difficult at first, after practice, we all made great progress. This experience gave me a deeper understanding and appreciation of traditional Chinese culture."
+    },
+    HSK5: {
+      chinese: "随着全球化的发展，跨文化交流变得越来越重要。在当今社会，掌握多种语言不仅能够促进个人发展，还能为职业发展创造更多机会。学习中文不仅让我了解了中国的历史和文化，还帮助我建立了与中文母语者的友谊。这种语言学习经历让我认识到，语言是连接不同文化的桥梁，也是促进世界和平与理解的重要工具。",
+      pinyin: "Suízhe quánqiúhuà de fāzhǎn, kuà wénhuà jiāoliú biàn dé yuè lái yuè zhòngyào. Zài dāngjīn shèhuì, zhǎngwò duō zhǒng yǔyán bùjǐn nénggòu cùjìn gèrén fāzhǎn, hái néng wèi zhíyè fāzhǎn chuàngzào gèng duō jīhuì. Xuéxí Zhōngwén bùjǐn ràng wǒ liǎojiě le Zhōngguó de lìshǐ hé wénhuà, hái bāngzhù wǒ jiànlì le yǔ Zhōngwén mǔyǔ zhě de yǒuyì. Zhè zhǒng yǔyán xuéxí jīnglì ràng wǒ rènshí dào, yǔyán shì liánjiē bùtóng wénhuà de qiáoliáng, yě shì cùjìn shìjiè hépíng yǔ lǐjiě de zhòngyào gōngjù.",
+      english: "With the development of globalization, cross-cultural communication has become increasingly important. In today's society, mastering multiple languages not only promotes personal development but also creates more opportunities for career advancement. Learning Chinese has not only helped me understand China's history and culture but also helped me build friendships with native Chinese speakers. This language learning experience has made me realize that language is a bridge connecting different cultures and an important tool for promoting world peace and understanding."
+    },
+    HSK6: {
+      chinese: "在当今快速发展的信息时代，人工智能技术的突飞猛进正在深刻改变着我们的生活方式和工作模式。从智能手机到自动驾驶汽车，从医疗诊断到金融分析，AI技术的应用已经渗透到社会的各个领域。然而，这种技术革新也带来了新的挑战和思考。我们需要在享受技术便利的同时，也要关注其可能带来的伦理问题和社会影响。只有通过理性思考和负责任的发展，我们才能确保人工智能技术真正造福人类，推动社会向着更加和谐、可持续的方向发展。",
+      pinyin: "Zài dāngjīn kuàisù fāzhǎn de xìnxī shídài, réngōng zhìnéng jìshù de tūfēi měngjìn zhèngzài shēnkè gǎibiàn zhe wǒmen de shēnghuó fāngshì hé gōngzuò móshì. Cóng zhìnéng shǒujī dào zìdòng jiàshǐ qìchē, cóng yīliáo zhěnduàn dào jīnróng fēnxī, AI jìshù de yìngyòng yǐjīng shèntòu dào shèhuì de gègè lǐngyù. Rán'ér, zhè zhǒng jìshù géxīn yě dài lái le xīn de tiǎozhàn hé sīkǎo. Wǒmen xūyào zài xiǎngshòu jìshù biànlì de tóngshí, yě yào guānzhù qí kěnéng dài lái de lúnlǐ wèntí hé shèhuì yǐngxiǎng. Zhǐyǒu tōngguò lǐxìng sīkǎo hé fùzérèn de fāzhǎn, wǒmen cái néng quèbǎo réngōng zhìnéng jìshù zhēnzhèng zàofú rénlèi, tuīdòng shèhuì xiàng zhe gèngjiā héxié, kě chíxù de fāngxiàng fāzhǎn.",
+      english: "In today's rapidly developing information age, the rapid advancement of artificial intelligence technology is profoundly changing our way of life and work patterns. From smartphones to autonomous vehicles, from medical diagnosis to financial analysis, the application of AI technology has penetrated into various fields of society. However, this technological innovation also brings new challenges and considerations. While enjoying the convenience of technology, we also need to pay attention to the potential ethical issues and social impacts it may bring. Only through rational thinking and responsible development can we ensure that artificial intelligence technology truly benefits humanity and promotes society toward a more harmonious and sustainable direction."
     }
   };
   
-  return stories[skillLevel as keyof typeof stories] || stories.easy;
+  return stories[skillLevel as keyof typeof stories] || stories.HSK1;
 };
 
 // Helper function to extract JSON from text that might contain extra content
@@ -82,26 +97,31 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Determine vocabulary limits based on skill level
-    const vocabLimits = {
-      easy: 3,
-      medium: 5,
-      hard: 8
+    // Determine vocabulary limits and story length based on HSK level
+    const hskConfig = {
+      HSK1: { vocabLimit: 3, charLimit: '50-100' },
+      HSK2: { vocabLimit: 5, charLimit: '80-150' },
+      HSK3: { vocabLimit: 8, charLimit: '120-200' },
+      HSK4: { vocabLimit: 12, charLimit: '200-350' },
+      HSK5: { vocabLimit: 15, charLimit: '300-450' },
+      HSK6: { vocabLimit: 20, charLimit: '400-600' }
     };
 
-    const vocabLimit = vocabLimits[skillLevel as keyof typeof vocabLimits] || 5;
+    const config = hskConfig[skillLevel as keyof typeof hskConfig] || hskConfig.HSK1;
 
-    const prompt = `You are a Chinese language teacher creating reading materials for English-speaking students.
+    const prompt = `You are a Chinese language teacher creating reading materials for English-speaking students preparing for the ${skillLevel} exam.
 
 TASK: Create a short story in Chinese about "${subject}" suitable for ${skillLevel} level Chinese learners.
 
 REQUIREMENTS:
 - The story MUST be about "${subject}" specifically
-- Include only ${vocabLimit} new vocabulary words
-- Keep the story between 100-300 Chinese characters
+- Use primarily vocabulary from the ${skillLevel} word list
+- Include approximately ${config.vocabLimit} new vocabulary words appropriate for ${skillLevel}
+- Keep the story between ${config.charLimit} Chinese characters
 - Make it engaging and educational
-- Use appropriate grammar for ${skillLevel} level
+- Use grammar patterns appropriate for ${skillLevel} level
 - Ensure the story is culturally appropriate and family-friendly
+- Focus on practical, everyday vocabulary that students would encounter in ${skillLevel} contexts
 
 CRITICAL: You must respond with ONLY a valid JSON object. Do not include any text before or after the JSON.
 
@@ -114,6 +134,7 @@ OUTPUT FORMAT (respond with ONLY this JSON structure):
 
 IMPORTANT RULES:
 - The story must be specifically about "${subject}"
+- Use vocabulary appropriate for ${skillLevel} level learners
 - Do not include any explanations, markdown, or additional text
 - Do not use backticks or code blocks
 - Ensure all three versions tell the same story
@@ -204,7 +225,7 @@ IMPORTANT RULES:
         return NextResponse.json({
           ...fallbackStory,
           isAIGenerated: false,
-          note: `⚠️ Connection issue: This is a sample story about a cat/park/museum. Your requested topic "${subject}" could not be processed due to network connectivity issues. Please check your internet connection and try again.`
+          note: `⚠️ Connection issue: This is a sample story. Your requested topic "${subject}" could not be processed due to network connectivity issues. Please check your internet connection and try again.`
         });
       }
       

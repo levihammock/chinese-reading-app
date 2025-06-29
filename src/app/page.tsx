@@ -20,7 +20,7 @@ for (const entry of cedictDictionary) {
 }
 
 export default function Home() {
-  const [skillLevel, setSkillLevel] = useState<SkillLevel>('easy');
+  const [skillLevel, setSkillLevel] = useState<SkillLevel>('HSK1');
   const [subject, setSubject] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('all');
   const [story, setStory] = useState<StoryData & { isAIGenerated?: boolean; note?: string } | null>(null);
@@ -260,9 +260,12 @@ export default function Home() {
                 onChange={(e) => setSkillLevel(e.target.value as SkillLevel)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#F694C1] focus:border-transparent transition-all duration-200"
               >
-                <option value="easy">Easy</option>
-                <option value="medium">Medium</option>
-                <option value="hard">Hard</option>
+                <option value="HSK1">HSK1</option>
+                <option value="HSK2">HSK2</option>
+                <option value="HSK3">HSK3</option>
+                <option value="HSK4">HSK4</option>
+                <option value="HSK5">HSK5</option>
+                <option value="HSK6">HSK6</option>
               </select>
             </div>
             <div className="flex-1">
@@ -313,7 +316,7 @@ export default function Home() {
                 {error.includes('complex topics') && (
                   <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                     <p className="text-yellow-800 text-sm">
-                      <strong>Tip:</strong> Try simpler topics like "cat", "food", "family", or "weather" for better results.
+                      <strong>Tip:</strong> Try simpler topics like &ldquo;cat&rdquo;, &ldquo;food&rdquo;, &ldquo;family&rdquo;, or &ldquo;weather&rdquo; for better results.
                     </p>
                   </div>
                 )}

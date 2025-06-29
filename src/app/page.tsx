@@ -2,7 +2,22 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { SkillLevel, ViewMode, StoryData, VocabularyWord } from '@/types';
-import { getPinyinTranslation, getContextAwareTranslation, getAnyTranslation } from '@/data/pinyin-dictionary';
+import { cedictDictionary } from '@/data/cedict-dictionary';
+
+// Build lookup maps for fast access
+const pinyinMap = new Map();
+const charMap = new Map();
+for (const entry of cedictDictionary) {
+  // Normalize pinyin (remove tone numbers and spaces)
+  const normalizedPinyin = entry.pinyin.toLowerCase().replace(/[0-9]/g, '').replace(/\s+/g, '');
+  if (!pinyinMap.has(normalizedPinyin)) {
+    pinyinMap.set(normalizedPinyin, entry);
+  }
+  // Only map single characters for charMap
+  if (entry.chinese.length === 1 && !charMap.has(entry.chinese)) {
+    charMap.set(entry.chinese, entry);
+  }
+}
 
 export default function Home() {
   const [skillLevel, setSkillLevel] = useState<SkillLevel>('easy');
@@ -16,38 +31,19 @@ export default function Home() {
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   const tooltipRef = useRef<HTMLDivElement>(null);
 
-  // Function to get accurate translation for a Pinyin word
+  // Optimized function to get accurate translation for a Pinyin word using the Map
   const getAccurateTranslation = (pinyin: string, context?: { before?: string, after?: string }) => {
-    // Try context-aware translation first
-    if (context) {
-      const contextTranslation = getContextAwareTranslation(pinyin, context);
-      if (contextTranslation) {
-        return contextTranslation;
-      }
-    }
-    
-    // Fall back to basic dictionary lookup
-    const translation = getPinyinTranslation(pinyin);
-    if (translation) {
-      return translation;
-    }
-    
-    // If no translation found, return null
-    return null;
+    const normalizedPinyin = pinyin.toLowerCase().replace(/[0-9]/g, '').replace(/\s+/g, '');
+    return pinyinMap.get(normalizedPinyin) || null;
   };
 
-  // Enhanced function to get any available translation with fallback
+  // Optimized function to get any available translation with fallback
   const getAnyAvailableTranslation = (pinyin: string, chineseChars?: string) => {
-    // Try pinyin dictionary first
-    const pinyinTranslation = getPinyinTranslation(pinyin);
-    if (pinyinTranslation) return pinyinTranslation;
-    
-    // If we have Chinese characters, try character-level translation
-    if (chineseChars) {
-      const charTranslation = getAnyTranslation(pinyin, chineseChars);
-      if (charTranslation) return charTranslation;
+    const translation = getAccurateTranslation(pinyin);
+    if (translation) return translation;
+    if (chineseChars && charMap.has(chineseChars)) {
+      return charMap.get(chineseChars);
     }
-    
     return null;
   };
 
@@ -107,7 +103,7 @@ export default function Home() {
       return (
         <span
           key={index}
-          className="inline-block cursor-pointer hover:bg-orange-100 rounded px-1 transition-colors duration-200"
+          className="inline-block cursor-pointer hover:bg-[#F694C1] hover:bg-opacity-20 rounded px-1 transition-colors duration-200"
           onMouseMove={(e) => {
             handleMouseMove(e, word, translation.chinese, translation.english);
           }}
@@ -203,17 +199,17 @@ export default function Home() {
         return (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="text-xl leading-relaxed p-6 bg-white rounded-2xl shadow-lg">
-              <h3 className="text-lg font-semibold mb-4 text-blue-600">中文</h3>
+              <h3 className="text-lg font-semibold mb-4 text-black">中文</h3>
               <div className="text-center">
                 {renderChineseText(story.chinese)}
               </div>
             </div>
             <div className="text-lg leading-relaxed p-6 bg-white rounded-2xl shadow-lg">
-              <h3 className="text-lg font-semibold mb-4 text-orange-500">Pinyin</h3>
+              <h3 className="text-lg font-semibold mb-4 text-black">Pinyin</h3>
               <div className="text-center">{renderPinyinText(story.chinese, story.pinyin, story.english)}</div>
             </div>
             <div className="text-lg leading-relaxed p-6 bg-white rounded-2xl shadow-lg">
-              <h3 className="text-lg font-semibold mb-4 text-green-600">English</h3>
+              <h3 className="text-lg font-semibold mb-4 text-black">English</h3>
               <div className="text-center">{story.english}</div>
             </div>
           </div>
@@ -222,14 +218,14 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-orange-50 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-[#D3F8E2] via-[#A9DEF9] to-[#E4C1F9] p-4 font-sans">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">
-            🎯 Chinese Reading Practice
+          <h1 className="text-4xl font-bold text-black mb-2">
+            Chinese Reading Practice
           </h1>
-          <p className="text-lg text-gray-600">
+          <p className="text-lg text-black">
             Learn Chinese through AI-generated stories tailored to your level
           </p>
         </div>
@@ -238,13 +234,13 @@ export default function Home() {
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
           <div className="flex flex-col md:flex-row gap-4 mb-4">
             <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-black mb-2">
                 Skill Level
               </label>
               <select
                 value={skillLevel}
                 onChange={(e) => setSkillLevel(e.target.value as SkillLevel)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#F694C1] focus:border-transparent transition-all duration-200"
               >
                 <option value="easy">Easy</option>
                 <option value="medium">Medium</option>
@@ -252,7 +248,7 @@ export default function Home() {
               </select>
             </div>
             <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-black mb-2">
                 Subject
               </label>
               <input
@@ -260,16 +256,16 @@ export default function Home() {
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
                 placeholder="e.g., animals, food, travel..."
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#F694C1] focus:border-transparent transition-all duration-200"
               />
             </div>
           </div>
           <button
             onClick={generateStory}
             disabled={isLoading || !subject.trim()}
-            className="w-full md:w-auto px-8 py-3 bg-gradient-to-r from-blue-500 to-orange-500 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl"
+            className="w-full md:w-auto px-8 py-3 bg-gradient-to-r from-[#F694C1] to-[#E4C1F9] text-white font-semibold rounded-xl hover:from-[#F694C1] hover:to-[#E4C1F9] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl"
           >
-            {isLoading ? '✨ Generating...' : '✨ Generate Story'}
+            {isLoading ? 'Generating...' : 'Generate Story'}
           </button>
         </div>
 
@@ -286,48 +282,21 @@ export default function Home() {
           </div>
         )}
 
-        {/* View Toggle */}
-        {story && (
-          <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
-            <label className="block text-sm font-medium text-gray-700 mb-4">
-              View Mode
-            </label>
-            <div className="flex flex-wrap gap-3">
-              {(['chinese', 'pinyin', 'english', 'all'] as ViewMode[]).map((mode) => (
-                <button
-                  key={mode}
-                  onClick={() => setViewMode(mode)}
-                  className={`px-6 py-3 rounded-full font-medium transition-all duration-200 ${
-                    viewMode === mode
-                      ? 'bg-gradient-to-r from-blue-500 to-orange-500 text-white shadow-lg'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  {mode === 'chinese' && '中文'}
-                  {mode === 'pinyin' && 'Pinyin'}
-                  {mode === 'english' && 'English'}
-                  {mode === 'all' && 'All Three'}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Story Display */}
+        {/* Story Display with Embedded View Toggle */}
         {story && (
           <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-800">
-                📖 Your Story
+              <h2 className="text-2xl font-bold text-black">
+                Your Story
               </h2>
               <div className="flex items-center gap-2">
                 {story.isAIGenerated ? (
-                  <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
-                    🤖 AI Generated
+                  <span className="px-3 py-1 bg-[#D3F8E2] text-black rounded-full text-sm font-medium">
+                    AI Generated
                   </span>
                 ) : (
-                  <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-medium">
-                    📚 Sample Story
+                  <span className="px-3 py-1 bg-[#EDE7B1] text-black rounded-full text-sm font-medium">
+                    Sample Story
                   </span>
                 )}
               </div>
@@ -335,16 +304,41 @@ export default function Home() {
             
             {/* Fallback Notice */}
             {!story.isAIGenerated && story.note && (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6">
+              <div className="bg-[#EDE7B1] border border-yellow-200 rounded-xl p-4 mb-6">
                 <div className="flex items-start">
                   <div className="text-yellow-600 mr-3 mt-0.5">⚠️</div>
                   <div>
-                    <h3 className="text-yellow-800 font-semibold mb-1">Sample Story</h3>
-                    <p className="text-yellow-700 text-sm">{story.note}</p>
+                    <h3 className="text-black font-semibold mb-1">Sample Story</h3>
+                    <p className="text-black text-sm">{story.note}</p>
                   </div>
                 </div>
               </div>
             )}
+
+            {/* View Mode Toggle - Embedded */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-black mb-4">
+                View Mode
+              </label>
+              <div className="flex flex-wrap gap-3">
+                {(['chinese', 'pinyin', 'english', 'all'] as ViewMode[]).map((mode) => (
+                  <button
+                    key={mode}
+                    onClick={() => setViewMode(mode)}
+                    className={`px-6 py-3 rounded-full font-medium transition-all duration-200 ${
+                      viewMode === mode
+                        ? 'bg-gradient-to-r from-[#F694C1] to-[#E4C1F9] text-white shadow-lg'
+                        : 'bg-[#A9DEF9] text-black hover:bg-[#A9DEF9] hover:bg-opacity-80'
+                    }`}
+                  >
+                    {mode === 'chinese' && '中文'}
+                    {mode === 'pinyin' && 'Pinyin'}
+                    {mode === 'english' && 'English'}
+                    {mode === 'all' && 'All Three'}
+                  </button>
+                ))}
+              </div>
+            </div>
             
             {renderStoryContent()}
             
@@ -352,18 +346,18 @@ export default function Home() {
             <div className="flex flex-col sm:flex-row gap-4 mt-6">
               <button
                 onClick={saveVocabulary}
-                className="flex-1 px-6 py-3 bg-green-500 text-white font-semibold rounded-xl hover:bg-green-600 transition-all duration-200 shadow-lg"
+                className="flex-1 px-6 py-3 bg-[#D3F8E2] text-black font-semibold rounded-xl hover:bg-[#D3F8E2] hover:bg-opacity-80 transition-all duration-200 shadow-lg"
               >
-                💾 Save Vocabulary
+                Save Vocabulary
               </button>
               <button
                 onClick={() => {
                   const text = `Chinese: ${story.chinese}\nPinyin: ${story.pinyin}\nEnglish: ${story.english}`;
                   navigator.clipboard.writeText(text);
                 }}
-                className="flex-1 px-6 py-3 bg-purple-500 text-white font-semibold rounded-xl hover:bg-purple-600 transition-all duration-200 shadow-lg"
+                className="flex-1 px-6 py-3 bg-[#E4C1F9] text-black font-semibold rounded-xl hover:bg-[#E4C1F9] hover:bg-opacity-80 transition-all duration-200 shadow-lg"
               >
-                📤 Copy Story
+                Copy Story
               </button>
             </div>
           </div>
@@ -396,18 +390,18 @@ export default function Home() {
         {/* Saved Vocabulary */}
         {savedVocabulary.length > 0 && (
           <div className="bg-white rounded-2xl shadow-lg p-6">
-            <h3 className="text-xl font-bold text-gray-800 mb-4">
-              💾 Saved Vocabulary ({savedVocabulary.length})
+            <h3 className="text-xl font-bold text-black mb-4">
+              Saved Vocabulary ({savedVocabulary.length})
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {savedVocabulary.map((vocab, index) => (
                 <div
                   key={index}
-                  className="p-4 bg-gray-50 rounded-xl border border-gray-200"
+                  className="p-4 bg-[#EDE7B1] rounded-xl border border-gray-200"
                 >
-                  <div className="font-bold text-lg">{vocab.chinese}</div>
-                  <div className="text-gray-600">{vocab.pinyin}</div>
-                  <div className="text-gray-500 text-sm">{vocab.english}</div>
+                  <div className="font-bold text-lg text-black">{vocab.chinese}</div>
+                  <div className="text-black">{vocab.pinyin}</div>
+                  <div className="text-black text-sm">{vocab.english}</div>
                 </div>
               ))}
             </div>

@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { SkillLevel, ViewMode, StoryData, VocabularyWord } from '@/types';
-import { getPinyinTranslation, getContextAwareTranslation } from '@/data/pinyin-dictionary';
+import { getPinyinTranslation, getContextAwareTranslation, getAnyTranslation } from '@/data/pinyin-dictionary';
 
 export default function Home() {
   const [skillLevel, setSkillLevel] = useState<SkillLevel>('easy');
@@ -36,8 +36,23 @@ export default function Home() {
     return null;
   };
 
+  // Enhanced function to get any available translation with fallback
+  const getAnyAvailableTranslation = (pinyin: string, chineseChars?: string) => {
+    // Try pinyin dictionary first
+    const pinyinTranslation = getPinyinTranslation(pinyin);
+    if (pinyinTranslation) return pinyinTranslation;
+    
+    // If we have Chinese characters, try character-level translation
+    if (chineseChars) {
+      const charTranslation = getAnyTranslation(pinyin, chineseChars);
+      if (charTranslation) return charTranslation;
+    }
+    
+    return null;
+  };
+
   // Handle mouse move for tooltip positioning
-  const handleMouseMove = (event: React.MouseEvent, pinyin: string, chinese: string, english: string) => {
+  const handleMouseMove = (event: React.MouseEvent, pinyin: string, chinese: string, english: string, isFallback: boolean = false) => {
     setHoveredWord({ pinyin, chinese, english });
     // Position tooltip above the specific word being hovered
     const rect = event.currentTarget.getBoundingClientRect();
@@ -56,6 +71,8 @@ export default function Home() {
   const renderPinyinText = (chinese: string, pinyin: string, english: string) => {
     // Split pinyin into words
     const pinyinWords = pinyin.split(' ');
+    // Split Chinese into characters
+    const chineseChars = chinese.split('');
     
     return pinyinWords.map((word, index) => {
       // Get context for better translation accuracy
@@ -64,10 +81,27 @@ export default function Home() {
         after: pinyinWords[index + 1]
       };
       
-      const translation = getAccurateTranslation(word, context);
+      // Try to get the corresponding Chinese characters for this pinyin word
+      // This is a simplified approach - in a real app you'd need more sophisticated mapping
+      const chineseForWord = chineseChars[index] || '';
+      
+      const translation = getAnyAvailableTranslation(word, chineseForWord);
       
       if (!translation) {
-        return <span key={index}>{word} </span>;
+        // Word not in dictionary - show with different styling
+        return (
+          <span
+            key={index}
+            className="inline-block cursor-pointer hover:bg-gray-100 rounded px-1 transition-colors duration-200 text-gray-500"
+            onMouseMove={(e) => {
+              handleMouseMove(e, word, chineseForWord, "Translation not available", true);
+            }}
+            onMouseLeave={handleMouseLeave}
+            title="Translation not available in dictionary"
+          >
+            {word}{' '}
+          </span>
+        );
       }
       
       return (
@@ -345,7 +379,14 @@ export default function Home() {
             <div className="text-sm">
               <div className="font-bold text-lg mb-1">{hoveredWord.pinyin}</div>
               <div className="text-blue-300 mb-1">{hoveredWord.chinese}</div>
-              <div className="text-gray-300">{hoveredWord.english}</div>
+              <div className={`${hoveredWord.english === "Translation not available" ? "text-red-300 italic" : "text-gray-300"}`}>
+                {hoveredWord.english}
+              </div>
+              {hoveredWord.english === "Translation not available" && (
+                <div className="text-yellow-300 text-xs mt-1">
+                  ⚠️ Not in dictionary
+                </div>
+              )}
             </div>
             {/* Arrow pointing down to the word */}
             <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"></div>

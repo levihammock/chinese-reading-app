@@ -1,5 +1,9 @@
 # Chinese Reading App
 
+A web application for learning Chinese through AI-generated stories.
+
+<!-- Latest deployment test - $(date) -->
+
 A web application designed to help English-speaking learners practice reading Chinese characters and build vocabulary. The app generates short stories using Claude AI based on user inputs for skill level and subject matter.
 
 ## Features

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
+import { cedictDictionary } from '@/data/cedict-dictionary';
 
 // Fallback story generator for when API is unavailable
 const generateFallbackStory = (skillLevel: string, subject: string) => {
@@ -59,6 +60,44 @@ const extractJSONFromText = (text: string) => {
   }
 };
 
+// Helper function to get allowed words for a specific HSK level
+const getAllowedWords = (skillLevel: string): string[] => {
+  // Map skill levels to HSK numbers
+  const hskLevelMap: Record<string, number> = {
+    'HSK1': 1,
+    'HSK2': 2,
+    'HSK3': 3,
+    'HSK4': 4,
+    'HSK5': 5,
+    'HSK6': 6
+  };
+  
+  const targetHskLevel = hskLevelMap[skillLevel];
+  
+  if (!targetHskLevel) {
+    // If no HSK level mapping, return all words (fallback)
+    return cedictDictionary.slice(0, 500).map(entry => entry.chinese);
+  }
+  
+  // Filter dictionary to include words from the target level AND all lower levels
+  const filteredWords = cedictDictionary
+    .filter(entry => entry.hskLevel && entry.hskLevel <= targetHskLevel)
+    .map(entry => entry.chinese)
+    .slice(0, 500);
+  
+  // If we don't have enough HSK words, add some common words without HSK level
+  if (filteredWords.length < 100) {
+    const commonWords = cedictDictionary
+      .filter(entry => !entry.hskLevel)
+      .map(entry => entry.chinese)
+      .slice(0, 500 - filteredWords.length);
+    
+    return [...filteredWords, ...commonWords];
+  }
+  
+  return filteredWords;
+};
+
 export async function POST(request: NextRequest) {
   try {
     // Check if API key is available
@@ -85,6 +124,10 @@ export async function POST(request: NextRequest) {
 
     console.log('Generating story for:', { skillLevel, subject });
 
+    // Get allowed words for this skill level
+    const allowedWords = getAllowedWords(skillLevel);
+    console.log(`Using ${allowedWords.length} allowed words for ${skillLevel}`);
+
     // Try to set SSL configuration
     process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
@@ -109,13 +152,21 @@ export async function POST(request: NextRequest) {
 
     const config = hskConfig[skillLevel as keyof typeof hskConfig] || hskConfig.HSK1;
 
+    // Create a sample of allowed words for the prompt (limit to first 50 to keep prompt manageable)
+    const sampleWords = allowedWords.slice(0, 50).join(', ');
+    const remainingCount = allowedWords.length - 50;
+
     const prompt = `You are a Chinese language teacher creating reading materials for English-speaking students preparing for the ${skillLevel} exam.
 
 TASK: Create a short story in Chinese about "${subject}" suitable for ${skillLevel} level Chinese learners.
 
+CRITICAL VOCABULARY RESTRICTION:
+You MUST ONLY use words from the following list. This list includes vocabulary from ${skillLevel} AND all lower HSK levels (HSK1-${skillLevel.replace('HSK', '')}). Do not use any Chinese words that are not in this list:
+${sampleWords}${remainingCount > 0 ? `\n(and ${remainingCount} more words from HSK1-${skillLevel.replace('HSK', '')} vocabulary)` : ''}
+
 REQUIREMENTS:
 - The story MUST be about "${subject}" specifically
-- Use primarily vocabulary from the ${skillLevel} word list
+- Use ONLY vocabulary from the provided word list above (HSK1-${skillLevel.replace('HSK', '')} levels)
 - Include approximately ${config.vocabLimit} new vocabulary words appropriate for ${skillLevel}
 - Keep the story between ${config.charLimit} Chinese characters
 - Make it engaging and educational
@@ -134,7 +185,7 @@ OUTPUT FORMAT (respond with ONLY this JSON structure):
 
 IMPORTANT RULES:
 - The story must be specifically about "${subject}"
-- Use vocabulary appropriate for ${skillLevel} level learners
+- Use ONLY vocabulary from the provided word list (HSK1-${skillLevel.replace('HSK', '')} levels)
 - Do not include any explanations, markdown, or additional text
 - Do not use backticks or code blocks
 - Ensure all three versions tell the same story
@@ -204,63 +255,27 @@ IMPORTANT RULES:
       } else {
         console.error('Unexpected content type:', content.type);
         return NextResponse.json(
-          { error: 'Unexpected response format from AI service' },
+          { error: 'Unexpected response format from AI' },
           { status: 500 }
         );
       }
     } catch (apiError) {
-      console.error('API Error:', apiError);
+      console.error('Anthropic API error:', apiError);
       
-      // If it's a connection/SSL error, provide a fallback
-      if (apiError instanceof Error && 
-          (apiError.message.includes('Connection error') || 
-           apiError.message.includes('fetch failed') ||
-           apiError.message.includes('UNABLE_TO_GET_ISSUER_CERT_LOCALLY') ||
-           apiError.message.includes('certificate') ||
-           apiError.message.includes('SSL'))) {
-        
-        console.log('Using fallback story due to connection issues');
-        const fallbackStory = generateFallbackStory(skillLevel, subject);
-        
-        return NextResponse.json({
-          ...fallbackStory,
-          isAIGenerated: false,
-          note: `⚠️ Connection issue: This is a sample story. Your requested topic "${subject}" could not be processed due to network connectivity issues. Please check your internet connection and try again.`
-        });
-      }
+      // Fallback to predefined stories
+      console.log('Using fallback story due to API error');
+      const fallbackStory = generateFallbackStory(skillLevel, subject);
       
-      throw apiError; // Re-throw other errors
+      return NextResponse.json({
+        ...fallbackStory,
+        isAIGenerated: false,
+        note: 'Generated using fallback due to API error'
+      });
     }
   } catch (error) {
-    console.error('Error generating story:', error);
-    
-    // Provide more specific error messages
-    if (error instanceof Error) {
-      if (error.message.includes('401')) {
-        return NextResponse.json(
-          { error: 'Invalid API key' },
-          { status: 401 }
-        );
-      } else if (error.message.includes('429')) {
-        return NextResponse.json(
-          { error: 'Rate limit exceeded' },
-          { status: 429 }
-        );
-      } else if (error.message.includes('Connection error') || error.message.includes('fetch failed')) {
-        return NextResponse.json(
-          { error: 'Network connection error. Please check your internet connection and try again.' },
-          { status: 500 }
-        );
-      } else if (error.message.includes('UNABLE_TO_GET_ISSUER_CERT_LOCALLY') || error.message.includes('certificate')) {
-        return NextResponse.json(
-          { error: 'SSL certificate issue. Please try again or contact support.' },
-          { status: 500 }
-        );
-      }
-    }
-    
+    console.error('Unexpected error:', error);
     return NextResponse.json(
-      { error: 'Failed to generate story. Please try again.' },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }

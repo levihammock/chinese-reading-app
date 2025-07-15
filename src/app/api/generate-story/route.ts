@@ -241,8 +241,13 @@ IMPORTANT RULES:
           lastError = 'Unexpected content type from AI.';
         }
       } catch (apiError: unknown) {
-        if (typeof apiError === 'object' && apiError && 'message' in apiError && typeof (apiError as any).message === 'string') {
-          lastError = (apiError as { message: string }).message;
+        if (
+          typeof apiError === 'object' &&
+          apiError !== null &&
+          'message' in apiError &&
+          typeof (apiError as Record<string, unknown>).message === 'string'
+        ) {
+          lastError = (apiError as Record<string, unknown>).message as string;
         } else {
           lastError = 'Anthropic API error';
         }

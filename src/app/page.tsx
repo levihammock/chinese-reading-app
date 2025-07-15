@@ -245,12 +245,12 @@ export default function Home() {
       case 'all': // Change to 'both'
         return (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="text-xl leading-relaxed p-6 bg-white rounded-2xl shadow-lg">
-              <h3 className="text-lg font-semibold mb-4 text-black">中文</h3>
+            <div className="text-xl leading-relaxed p-6 bg-[#FDFCDC] text-[#0081A7] rounded-2xl shadow-lg">
+              <h3 className="text-lg font-semibold mb-4">中文</h3>
               {renderChineseWithPinyin(storyArray)}
             </div>
-            <div className="text-lg leading-relaxed p-6 bg-white rounded-2xl shadow-lg">
-              <h3 className="text-lg font-semibold mb-4 text-black">English</h3>
+            <div className="text-lg leading-relaxed p-6 bg-[#00AFB9] text-white rounded-2xl shadow-lg">
+              <h3 className="text-lg font-semibold mb-4">English</h3>
               {story.sentence ? (
                 <span>{story.sentence}</span>
               ) : (
@@ -261,6 +261,23 @@ export default function Home() {
         );
     }
   };
+
+  // Toggle switch component for Show Pinyin
+  const ToggleSwitch = ({ checked, onChange, id }: { checked: boolean; onChange: () => void; id: string }) => (
+    <button
+      id={id}
+      type="button"
+      onClick={onChange}
+      className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#00AFB9] ${checked ? 'bg-[#00AFB9]' : 'bg-[#FED9B7]'}`}
+      aria-pressed={checked}
+    >
+      <span
+        className={`inline-block h-6 w-6 transform rounded-full bg-white shadow transition-transform duration-200 ${checked ? 'translate-x-7' : 'translate-x-1'}`}
+      />
+      <span className="absolute left-2 text-xs font-semibold text-[#0081A7] select-none" style={{ opacity: checked ? 1 : 0.5 }}>ON</span>
+      <span className="absolute right-2 text-xs font-semibold text-[#F07167] select-none" style={{ opacity: checked ? 0.5 : 1 }}>OFF</span>
+    </button>
+  );
 
   return (
     <div className={`min-h-screen bg-white ${quicksand.className}`}>
@@ -369,31 +386,14 @@ export default function Home() {
           )}
           {/* Story Display and View Toggle */}
           {story && (
-            <div className="bg-[#FDFCDC] rounded-2xl shadow-lg p-8 mb-8">
+            <div className="bg-[#FED9B7] rounded-2xl shadow-lg p-8 mb-8">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-bold text-[#0081A7]">Your Story</h2>
+                {/* Show Pinyin Toggle moved to right side */}
                 <div className="flex items-center gap-2">
-                  {story.isAIGenerated ? (
-                    <span className="px-3 py-1 bg-[#00AFB9] text-white rounded-full text-sm font-medium">
-                      AI Generated
-                    </span>
-                  ) : (
-                    <span className="px-3 py-1 bg-[#FED9B7] text-[#F07167] rounded-full text-sm font-medium">
-                      Sample Story
-                    </span>
-                  )}
+                  <span className="text-[#0081A7] font-medium mr-2">Show Pinyin</span>
+                  <ToggleSwitch checked={showPinyin} onChange={() => setShowPinyin(v => !v)} id="show-pinyin-toggle" />
                 </div>
-              </div>
-              {/* Show Pinyin Toggle */}
-              <div className="flex items-center mb-6">
-                <label className="text-[#0081A7] font-medium mr-3" htmlFor="show-pinyin-toggle">Show Pinyin</label>
-                <input
-                  id="show-pinyin-toggle"
-                  type="checkbox"
-                  checked={showPinyin}
-                  onChange={() => setShowPinyin(v => !v)}
-                  className="form-checkbox h-5 w-5 text-[#00AFB9] border-[#0081A7] focus:ring-[#00AFB9]"
-                />
               </div>
               {/* View Mode Toggle */}
               <div className="mb-6">
@@ -405,7 +405,7 @@ export default function Home() {
                       onClick={() => setViewMode(mode)}
                       className={`px-6 py-3 rounded-full font-medium transition-all duration-200 ${
                         viewMode === mode
-                          ? 'bg-gradient-to-r from-[#0081A7] to-[#00AFB9] text-white shadow-lg'
+                          ? 'bg-gradient-to-r from-[#00AFB9] to-[#F07167] text-white shadow-lg'
                           : 'bg-[#FDFCDC] text-[#0081A7] hover:bg-[#00AFB9] hover:text-white'
                       }`}
                     >
@@ -421,7 +421,7 @@ export default function Home() {
               <div className="flex flex-col sm:flex-row gap-4 mt-6">
                 <button
                   onClick={saveVocabulary}
-                  className="flex-1 px-6 py-3 bg-[#00AFB9] text-white font-semibold rounded-xl hover:bg-[#0081A7] hover:bg-opacity-80 transition-all duration-200 shadow-lg"
+                  className="flex-1 px-6 py-3 bg-[#0081A7] text-white font-semibold rounded-xl hover:bg-[#00AFB9] hover:bg-opacity-80 transition-all duration-200 shadow-lg"
                 >
                   Save Vocabulary
                 </button>

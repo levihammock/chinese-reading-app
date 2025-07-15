@@ -55,6 +55,8 @@ export default function Home() {
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   const [dictionaryReady, setDictionaryReady] = useState(false);
   const tooltipRef = useRef<HTMLDivElement>(null);
+  // Add state for showPinyin toggle (default true)
+  const [showPinyin, setShowPinyin] = useState(true);
 
   // Load dictionary on component mount
   useEffect(() => {
@@ -113,6 +115,29 @@ export default function Home() {
             {mode === 'pinyin' && item.pinyin}
             {mode === 'english' && item.english}
             {' '}
+          </span>
+        ))}
+      </div>
+    );
+  };
+
+  // New: Render aligned story array with optional Pinyin above Chinese
+  const renderChineseWithPinyin = (storyArray: { chinese: string; pinyin: string; english: string }[]) => {
+    return (
+      <div className="text-center flex flex-wrap justify-center">
+        {storyArray.map((item, idx) => (
+          <span
+            key={idx}
+            className="inline-block cursor-pointer hover:bg-[#F694C1] hover:bg-opacity-20 rounded px-1 transition-colors duration-200"
+            onMouseMove={e => handleMouseMove(e, item.pinyin, item.chinese, item.english)}
+            onMouseLeave={handleMouseLeave}
+          >
+            <span className="flex flex-col items-center">
+              {showPinyin && (
+                <span className="text-xs text-[#0081A7] mb-0.5 select-none">{item.pinyin}</span>
+              )}
+              <span>{item.chinese}</span>
+            </span>
           </span>
         ))}
       </div>
@@ -203,13 +228,7 @@ export default function Home() {
       case 'chinese':
         return (
           <div className="text-2xl leading-relaxed text-center p-6 bg-white rounded-2xl shadow-lg">
-            {renderAlignedStory(storyArray, 'chinese')}
-          </div>
-        );
-      case 'pinyin':
-        return (
-          <div className="text-xl leading-relaxed text-center p-6 bg-white rounded-2xl shadow-lg">
-            {renderAlignedStory(storyArray, 'pinyin')}
+            {renderChineseWithPinyin(storyArray)}
           </div>
         );
       case 'english':
@@ -223,16 +242,12 @@ export default function Home() {
             )}
           </div>
         );
-      case 'all':
+      case 'all': // Change to 'both'
         return (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="text-xl leading-relaxed p-6 bg-white rounded-2xl shadow-lg">
               <h3 className="text-lg font-semibold mb-4 text-black">中文</h3>
-              {renderAlignedStory(storyArray, 'chinese')}
-            </div>
-            <div className="text-lg leading-relaxed p-6 bg-white rounded-2xl shadow-lg">
-              <h3 className="text-lg font-semibold mb-4 text-black">Pinyin</h3>
-              {renderAlignedStory(storyArray, 'pinyin')}
+              {renderChineseWithPinyin(storyArray)}
             </div>
             <div className="text-lg leading-relaxed p-6 bg-white rounded-2xl shadow-lg">
               <h3 className="text-lg font-semibold mb-4 text-black">English</h3>
@@ -360,11 +375,22 @@ export default function Home() {
                   )}
                 </div>
               </div>
+              {/* Show Pinyin Toggle */}
+              <div className="flex items-center mb-6">
+                <label className="text-[#0081A7] font-medium mr-3" htmlFor="show-pinyin-toggle">Show Pinyin</label>
+                <input
+                  id="show-pinyin-toggle"
+                  type="checkbox"
+                  checked={showPinyin}
+                  onChange={() => setShowPinyin(v => !v)}
+                  className="form-checkbox h-5 w-5 text-[#00AFB9] border-[#0081A7] focus:ring-[#00AFB9]"
+                />
+              </div>
               {/* View Mode Toggle */}
               <div className="mb-6">
                 <label className="block text-sm font-medium text-[#0081A7] mb-4">View Mode</label>
                 <div className="flex flex-wrap gap-3">
-                  {(['chinese', 'pinyin', 'english', 'all'] as ViewMode[]).map((mode) => (
+                  {(['chinese', 'english', 'all'] as ViewMode[]).map((mode) => (
                     <button
                       key={mode}
                       onClick={() => setViewMode(mode)}
@@ -375,9 +401,8 @@ export default function Home() {
                       }`}
                     >
                       {mode === 'chinese' && '中文'}
-                      {mode === 'pinyin' && 'Pinyin'}
                       {mode === 'english' && 'English'}
-                      {mode === 'all' && 'All Three'}
+                      {mode === 'all' && 'Both'}
                     </button>
                   ))}
                 </div>

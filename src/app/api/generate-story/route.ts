@@ -240,8 +240,12 @@ IMPORTANT RULES:
         } else {
           lastError = 'Unexpected content type from AI.';
         }
-      } catch (apiError: any) {
-        lastError = apiError?.message || 'Anthropic API error';
+      } catch (apiError: unknown) {
+        if (typeof apiError === 'object' && apiError && 'message' in apiError && typeof (apiError as any).message === 'string') {
+          lastError = (apiError as { message: string }).message;
+        } else {
+          lastError = 'Anthropic API error';
+        }
       }
       attempt++;
     }

@@ -242,16 +242,16 @@ export default function Home() {
     <div className={`min-h-screen bg-white ${quicksand.className}`}>
       <div className="flex flex-col md:flex-row max-w-7xl mx-auto min-h-screen">
         {/* Left Side Panel: Input Fields */}
-        <div className="w-full md:w-1/3 bg-[#FDFCDC] p-8 flex flex-col justify-between shadow-lg">
+        <div className="w-full md:w-1/3 bg-[#0081A7] p-8 flex flex-col justify-between shadow-lg">
           <div>
-            <h1 className="text-4xl font-bold text-[#0081A7] mb-8 text-center md:text-left">KanKan</h1>
+            <h1 className="text-4xl font-bold text-[#FDFCDC] mb-8 text-center md:text-left">KanKan</h1>
             {/* Input Section */}
             <div className="mb-8">
-              <label className="block text-sm font-medium text-[#0081A7] mb-2">Skill Level</label>
+              <label className="block text-sm font-medium text-[#FDFCDC] mb-2">Skill Level</label>
               <select
                 value={skillLevel}
                 onChange={(e) => setSkillLevel(e.target.value as SkillLevel)}
-                className="w-full px-4 py-3 border border-[#00AFB9] rounded-xl focus:ring-2 focus:ring-[#00AFB9] focus:border-transparent transition-all duration-200 bg-white text-[#0081A7] font-medium"
+                className="w-full px-4 py-3 border border-[#FED9B7] rounded-xl focus:ring-2 focus:ring-[#FED9B7] focus:border-transparent transition-all duration-200 bg-[#FDFCDC] text-[#0081A7] font-medium"
               >
                 <option value="HSK1">HSK1</option>
                 <option value="HSK2">HSK2</option>
@@ -262,19 +262,19 @@ export default function Home() {
               </select>
             </div>
             <div className="mb-8">
-              <label className="block text-sm font-medium text-[#0081A7] mb-2">Subject</label>
+              <label className="block text-sm font-medium text-[#FDFCDC] mb-2">Subject</label>
               <input
                 type="text"
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
                 placeholder="e.g., animals, food, travel..."
-                className="w-full px-4 py-3 border border-[#00AFB9] rounded-xl focus:ring-2 focus:ring-[#00AFB9] focus:border-transparent transition-all duration-200 bg-white text-[#0081A7] font-medium"
+                className="w-full px-4 py-3 border border-[#FED9B7] rounded-xl focus:ring-2 focus:ring-[#FED9B7] focus:border-transparent transition-all duration-200 bg-[#FDFCDC] text-[#0081A7] font-medium"
               />
             </div>
             <button
               onClick={generateStory}
               disabled={isLoading || !subject.trim()}
-              className="w-full px-8 py-3 bg-gradient-to-r from-[#0081A7] to-[#00AFB9] text-white font-semibold rounded-xl hover:from-[#00AFB9] hover:to-[#0081A7] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl"
+              className="w-full px-8 py-3 bg-gradient-to-r from-[#FED9B7] to-[#F07167] text-[#0081A7] font-semibold rounded-xl hover:from-[#F07167] hover:to-[#FED9B7] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl"
             >
               {isLoading ? 'Generating...' : 'Generate Story'}
             </button>
@@ -282,15 +282,15 @@ export default function Home() {
           {/* Saved Vocabulary */}
           {savedVocabulary.length > 0 && (
             <div className="mt-12">
-              <h3 className="text-xl font-bold text-[#0081A7] mb-4">Saved Vocabulary ({savedVocabulary.length})</h3>
+              <h3 className="text-xl font-bold text-[#FDFCDC] mb-4">Saved Vocabulary ({savedVocabulary.length})</h3>
               <div className="grid grid-cols-1 gap-4">
                 {savedVocabulary.map((vocab, index) => (
                   <div
                     key={index}
-                    className="p-4 bg-[#FED9B7] rounded-xl border border-[#F07167]"
+                    className="p-4 bg-[#00AFB9] rounded-xl border border-[#FDFCDC]"
                   >
-                    <div className="font-bold text-lg text-[#0081A7]">{vocab.chinese}</div>
-                    <div className="text-[#00AFB9]">{vocab.pinyin}</div>
+                    <div className="font-bold text-lg text-[#FED9B7]">{vocab.chinese}</div>
+                    <div className="text-[#FDFCDC]">{vocab.pinyin}</div>
                     <div className="text-[#F07167] text-sm">{vocab.english}</div>
                   </div>
                 ))}

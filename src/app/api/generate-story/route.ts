@@ -19,7 +19,7 @@ const extractJSONFromText = (text: string) => {
     return JSON.parse(text);
   } catch (error) {
     // If that fails, try to find JSON within the text
-    const jsonMatch = text.match(/\[.*\]/s);
+    const jsonMatch = text.match(/\[[\s\S]*\]/);
     if (jsonMatch) {
       try {
         return JSON.parse(jsonMatch[0]);

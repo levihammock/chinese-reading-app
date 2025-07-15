@@ -146,12 +146,20 @@ REQUIREMENTS:
 - Ensure the story is culturally appropriate and family-friendly
 - Focus on practical, everyday vocabulary that students would encounter in ${skillLevel} contexts
 
+IMPORTANT: Each object in the array should represent a single word or a common word pair/phrase (e.g., '中国', '朋友', '喜欢'), NOT a full sentence or clause. Do not group entire sentences together. Segment the story as finely as possible while keeping common word pairs together.
+
 CRITICAL: You must respond with ONLY a valid JSON array. Do not include any text before or after the JSON.
 
 OUTPUT FORMAT (respond with ONLY this JSON structure):
 [
-  { "chinese": "word or phrase", "pinyin": "pinyin for word or phrase", "english": "english translation" },
-  ...
+  { "chinese": "我", "pinyin": "wǒ", "english": "I" },
+  { "chinese": "爱", "pinyin": "ài", "english": "love" },
+  { "chinese": "中国", "pinyin": "zhōngguó", "english": "China" }
+]
+
+NOT THIS (do NOT group sentences):
+[
+  { "chinese": "我爱中国。", "pinyin": "wǒ ài zhōngguó.", "english": "I love China." }
 ]
 
 IMPORTANT RULES:
@@ -185,7 +193,30 @@ IMPORTANT RULES:
         console.log('Raw response preview:', content.text.substring(0, 200) + '...');
         
         // Try to extract and parse JSON from the response
-        const storyData = extractJSONFromText(content.text);
+        let storyData = extractJSONFromText(content.text);
+        // Fallback post-processing: if the AI returned sentence-level objects, split them into word-level objects
+        if (Array.isArray(storyData) && storyData.length > 0 && typeof storyData[0].chinese === 'string' && storyData[0].chinese.length > 2) {
+          // If any object is a full sentence, split it into words (naive split by character, or you could use a segmentation lib)
+          const newArray = [];
+          for (const obj of storyData) {
+            // If the object is a sentence, split it
+            if (obj.chinese.length > 2 && obj.chinese.indexOf(' ') === -1) {
+              // Naive: split by character, align pinyin and english if possible
+              const pinyinArr = obj.pinyin.split(' ');
+              const englishArr = obj.english.split(' ');
+              for (let i = 0; i < obj.chinese.length; i++) {
+                newArray.push({
+                  chinese: obj.chinese[i],
+                  pinyin: pinyinArr[i] || '',
+                  english: englishArr[i] || ''
+                });
+              }
+            } else {
+              newArray.push(obj);
+            }
+          }
+          storyData = newArray;
+        }
         
         if (Array.isArray(storyData) && storyData.length > 0 && storyData[0].chinese && storyData[0].pinyin && storyData[0].english) {
           console.log('Successfully generated aligned story array');

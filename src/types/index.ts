@@ -11,6 +11,7 @@ export interface AlignedWord {
 
 export interface StoryData {
   story: AlignedWord[];
+  sentence?: string;
 }
 
 export interface VocabularyWord {

@@ -215,7 +215,12 @@ export default function Home() {
       case 'english':
         return (
           <div className="text-lg leading-relaxed text-center p-6 bg-white rounded-2xl shadow-lg">
-            {renderAlignedStory(storyArray, 'english')}
+            {/* Show the natural sentence if available, else join the aligned array */}
+            {story.sentence ? (
+              <span>{story.sentence}</span>
+            ) : (
+              renderAlignedStory(storyArray, 'english')
+            )}
           </div>
         );
       case 'all':
@@ -231,7 +236,11 @@ export default function Home() {
             </div>
             <div className="text-lg leading-relaxed p-6 bg-white rounded-2xl shadow-lg">
               <h3 className="text-lg font-semibold mb-4 text-black">English</h3>
-              {renderAlignedStory(storyArray, 'english')}
+              {story.sentence ? (
+                <span>{story.sentence}</span>
+              ) : (
+                renderAlignedStory(storyArray, 'english')
+              )}
             </div>
           </div>
         );

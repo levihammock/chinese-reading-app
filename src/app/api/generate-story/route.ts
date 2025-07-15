@@ -146,28 +146,36 @@ REQUIREMENTS:
 - Ensure the story is culturally appropriate and family-friendly
 - Focus on practical, everyday vocabulary that students would encounter in ${skillLevel} contexts
 
-IMPORTANT: Each object in the array should represent a single word or a common word pair/phrase (e.g., '中国', '朋友', '喜欢'), NOT a full sentence or clause. Do not group entire sentences together. Segment the story as finely as possible while keeping common word pairs together.
+IMPORTANT: Each object in the aligned array should represent a single word or a common word pair/phrase (e.g., '中国', '朋友', '喜欢'), NOT a full sentence or clause. Do not group entire sentences together. Segment the story as finely as possible while keeping common word pairs together.
 
-CRITICAL: You must respond with ONLY a valid JSON array. Do not include any text before or after the JSON.
+CRITICAL: You must respond with ONLY a valid JSON object with two fields:
+- 'aligned': an array of objects, each with 'chinese', 'pinyin', and 'english' (word/phrase-level, as above)
+- 'sentence': a single string with the full, natural English translation of the story
 
 OUTPUT FORMAT (respond with ONLY this JSON structure):
-[
-  { "chinese": "我", "pinyin": "wǒ", "english": "I" },
-  { "chinese": "爱", "pinyin": "ài", "english": "love" },
-  { "chinese": "中国", "pinyin": "zhōngguó", "english": "China" }
-]
+{
+  "aligned": [
+    { "chinese": "我", "pinyin": "wǒ", "english": "I" },
+    { "chinese": "爱", "pinyin": "ài", "english": "love" },
+    { "chinese": "中国", "pinyin": "zhōngguó", "english": "China" }
+  ],
+  "sentence": "I love China."
+}
 
 NOT THIS (do NOT group sentences):
-[
-  { "chinese": "我爱中国。", "pinyin": "wǒ ài zhōngguó.", "english": "I love China." }
-]
+{
+  "aligned": [
+    { "chinese": "我爱中国。", "pinyin": "wǒ ài zhōngguó.", "english": "I love China." }
+  ],
+  "sentence": "I love China."
+}
 
 IMPORTANT RULES:
 - The story must be specifically about "${subject}"
 - Use ONLY vocabulary from the provided word list (HSK1-${skillLevel.replace('HSK', '')} levels)
 - Do not include any explanations, markdown, or additional text
 - Do not use backticks or code blocks
-- Ensure the JSON is properly formatted as an array of objects, with double quotes
+- Ensure the JSON is properly formatted as an object with the two fields above, with double quotes
 - Do not include any trailing commas`;
 
     console.log('Sending request to Claude...');
@@ -195,33 +203,39 @@ IMPORTANT RULES:
         // Try to extract and parse JSON from the response
         let storyData = extractJSONFromText(content.text);
         // Fallback post-processing: if the AI returned sentence-level objects, split them into word-level objects
-        if (Array.isArray(storyData) && storyData.length > 0 && typeof storyData[0].chinese === 'string' && storyData[0].chinese.length > 2) {
-          // If any object is a full sentence, split it into words (naive split by character, or you could use a segmentation lib)
-          const newArray = [];
-          for (const obj of storyData) {
-            // If the object is a sentence, split it
-            if (obj.chinese.length > 2 && obj.chinese.indexOf(' ') === -1) {
-              // Naive: split by character, align pinyin and english if possible
-              const pinyinArr = obj.pinyin.split(' ');
-              const englishArr = obj.english.split(' ');
-              for (let i = 0; i < obj.chinese.length; i++) {
-                newArray.push({
-                  chinese: obj.chinese[i],
-                  pinyin: pinyinArr[i] || '',
-                  english: englishArr[i] || ''
-                });
+        // If the AI returned the new object format
+        if (storyData && Array.isArray(storyData.aligned)) {
+          // Fallback post-processing for aligned array
+          let aligned = storyData.aligned;
+          if (aligned.length > 0 && typeof aligned[0].chinese === 'string' && aligned[0].chinese.length > 2) {
+            const newArray = [];
+            for (const obj of aligned) {
+              if (obj.chinese.length > 2 && obj.chinese.indexOf(' ') === -1) {
+                const pinyinArr = obj.pinyin.split(' ');
+                const englishArr = obj.english.split(' ');
+                for (let i = 0; i < obj.chinese.length; i++) {
+                  newArray.push({
+                    chinese: obj.chinese[i],
+                    pinyin: pinyinArr[i] || '',
+                    english: englishArr[i] || ''
+                  });
+                }
+              } else {
+                newArray.push(obj);
               }
-            } else {
-              newArray.push(obj);
             }
+            aligned = newArray;
           }
-          storyData = newArray;
-        }
-        
-        if (Array.isArray(storyData) && storyData.length > 0 && storyData[0].chinese && storyData[0].pinyin && storyData[0].english) {
-          console.log('Successfully generated aligned story array');
+          return NextResponse.json({
+            story: aligned,
+            sentence: storyData.sentence,
+            isAIGenerated: true
+          });
+        } else if (Array.isArray(storyData) && storyData.length > 0 && storyData[0].chinese && storyData[0].pinyin && storyData[0].english) {
+          // Legacy fallback: just an array
           return NextResponse.json({
             story: storyData,
+            sentence: storyData.map(w => w.english).join(' '),
             isAIGenerated: true
           });
         } else {

@@ -270,12 +270,11 @@ export default function Home() {
       onClick={onChange}
       className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#00AFB9] ${checked ? 'bg-[#00AFB9]' : 'bg-[#FED9B7]'}`}
       aria-pressed={checked}
+      style={{ minHeight: '1.75rem' }}
     >
       <span
         className={`inline-block h-6 w-6 transform rounded-full bg-white shadow transition-transform duration-200 ${checked ? 'translate-x-7' : 'translate-x-1'}`}
       />
-      <span className="absolute left-2 text-xs font-semibold text-[#0081A7] select-none" style={{ opacity: checked ? 1 : 0.5 }}>ON</span>
-      <span className="absolute right-2 text-xs font-semibold text-[#F07167] select-none" style={{ opacity: checked ? 0.5 : 1 }}>OFF</span>
     </button>
   );
 
@@ -390,7 +389,7 @@ export default function Home() {
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-bold text-[#0081A7]">Your Story</h2>
                 {/* Show Pinyin Toggle moved to right side */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 h-7">
                   <span className="text-[#0081A7] font-medium mr-2">Show Pinyin</span>
                   <ToggleSwitch checked={showPinyin} onChange={() => setShowPinyin(v => !v)} id="show-pinyin-toggle" />
                 </div>

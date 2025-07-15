@@ -95,56 +95,25 @@ export default function Home() {
     setHoveredWord(null);
   };
 
-  // Render Pinyin text with hover functionality using accurate translations
-  const renderPinyinText = (chinese: string, pinyin: string, english: string) => {
-    // Split pinyin into words
-    const pinyinWords = pinyin.split(' ');
-    // Split Chinese into characters
-    const chineseChars = chinese.split('');
-    
-    return pinyinWords.map((word, index) => {
-      // Get context for better translation accuracy
-      const context = {
-        before: pinyinWords[index - 1],
-        after: pinyinWords[index + 1]
-      };
-      
-      // Try to get the corresponding Chinese characters for this pinyin word
-      // This is a simplified approach - in a real app you'd need more sophisticated mapping
-      const chineseForWord = chineseChars[index] || '';
-      
-      const translation = getAnyAvailableTranslation(word, chineseForWord);
-      
-      if (!translation) {
-        // Word not in dictionary - show with different styling
-        return (
+  // New: Render aligned story array with hover tooltips
+  const renderAlignedStory = (storyArray: { chinese: string; pinyin: string; english: string }[], mode: ViewMode) => {
+    return (
+      <div className="text-center">
+        {storyArray.map((item, idx) => (
           <span
-            key={index}
-            className="inline-block cursor-pointer hover:bg-gray-100 rounded px-1 transition-colors duration-200 text-gray-500"
-            onMouseMove={(e) => {
-              handleMouseMove(e, word, chineseForWord, "Translation not available", true);
-            }}
+            key={idx}
+            className="inline-block cursor-pointer hover:bg-[#F694C1] hover:bg-opacity-20 rounded px-1 transition-colors duration-200"
+            onMouseMove={e => handleMouseMove(e, item.pinyin, item.chinese, item.english)}
             onMouseLeave={handleMouseLeave}
-            title="Translation not available in dictionary"
           >
-            {word}{' '}
+            {mode === 'chinese' && item.chinese}
+            {mode === 'pinyin' && item.pinyin}
+            {mode === 'english' && item.english}
+            {' '}
           </span>
-        );
-      }
-      
-      return (
-        <span
-          key={index}
-          className="inline-block cursor-pointer hover:bg-[#F694C1] hover:bg-opacity-20 rounded px-1 transition-colors duration-200"
-          onMouseMove={(e) => {
-            handleMouseMove(e, word, translation.chinese, translation.english);
-          }}
-          onMouseLeave={handleMouseLeave}
-        >
-          {word}{' '}
-        </span>
-      );
-    });
+        ))}
+      </div>
+    );
   };
 
   // Render Chinese text (no hover functionality)
@@ -210,39 +179,40 @@ export default function Home() {
   };
 
   const saveVocabulary = () => {
-    if (!story) return;
+    if (!story || !Array.isArray(story.story) || story.story.length === 0) return;
 
-    // Extract vocabulary from the story (simplified version)
+    // Save the first word as a sample vocabulary entry (or you could expand this to save all words)
+    const first = story.story[0];
+    if (!first) return;
     const newVocabulary: VocabularyWord = {
-      chinese: story.chinese,
-      pinyin: story.pinyin,
-      english: story.english,
+      chinese: first.chinese,
+      pinyin: first.pinyin,
+      english: first.english,
       timestamp: Date.now(),
     };
-
     setSavedVocabulary(prev => [...prev, newVocabulary]);
   };
 
   const renderStoryContent = () => {
-    if (!story) return null;
-
+    if (!story || !Array.isArray(story.story)) return null;
+    const storyArray = story.story;
     switch (viewMode) {
       case 'chinese':
         return (
           <div className="text-2xl leading-relaxed text-center p-6 bg-white rounded-2xl shadow-lg">
-            {renderChineseText(story.chinese)}
+            {renderAlignedStory(storyArray, 'chinese')}
           </div>
         );
       case 'pinyin':
         return (
           <div className="text-xl leading-relaxed text-center p-6 bg-white rounded-2xl shadow-lg">
-            {renderPinyinText(story.chinese, story.pinyin, story.english)}
+            {renderAlignedStory(storyArray, 'pinyin')}
           </div>
         );
       case 'english':
         return (
           <div className="text-lg leading-relaxed text-center p-6 bg-white rounded-2xl shadow-lg">
-            {story.english}
+            {renderAlignedStory(storyArray, 'english')}
           </div>
         );
       case 'all':
@@ -250,17 +220,15 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="text-xl leading-relaxed p-6 bg-white rounded-2xl shadow-lg">
               <h3 className="text-lg font-semibold mb-4 text-black">中文</h3>
-              <div className="text-center">
-                {renderChineseText(story.chinese)}
-              </div>
+              {renderAlignedStory(storyArray, 'chinese')}
             </div>
             <div className="text-lg leading-relaxed p-6 bg-white rounded-2xl shadow-lg">
               <h3 className="text-lg font-semibold mb-4 text-black">Pinyin</h3>
-              <div className="text-center">{renderPinyinText(story.chinese, story.pinyin, story.english)}</div>
+              {renderAlignedStory(storyArray, 'pinyin')}
             </div>
             <div className="text-lg leading-relaxed p-6 bg-white rounded-2xl shadow-lg">
               <h3 className="text-lg font-semibold mb-4 text-black">English</h3>
-              <div className="text-center">{story.english}</div>
+              {renderAlignedStory(storyArray, 'english')}
             </div>
           </div>
         );
@@ -427,7 +395,11 @@ export default function Home() {
               </button>
               <button
                 onClick={() => {
-                  const text = `Chinese: ${story.chinese}\nPinyin: ${story.pinyin}\nEnglish: ${story.english}`;
+                  if (!story || !Array.isArray(story.story)) return;
+                  const chinese = story.story.map(w => w.chinese).join(' ');
+                  const pinyin = story.story.map(w => w.pinyin).join(' ');
+                  const english = story.story.map(w => w.english).join(' ');
+                  const text = `Chinese: ${chinese}\nPinyin: ${pinyin}\nEnglish: ${english}`;
                   navigator.clipboard.writeText(text);
                 }}
                 className="flex-1 px-6 py-3 bg-[#E4C1F9] text-black font-semibold rounded-xl hover:bg-[#E4C1F9] hover:bg-opacity-80 transition-all duration-200 shadow-lg"

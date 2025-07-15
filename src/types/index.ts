@@ -2,10 +2,15 @@ export type SkillLevel = 'HSK1' | 'HSK2' | 'HSK3' | 'HSK4' | 'HSK5' | 'HSK6';
 
 export type ViewMode = 'chinese' | 'pinyin' | 'english' | 'all';
 
-export interface StoryData {
+// New aligned story type
+export interface AlignedWord {
   chinese: string;
   pinyin: string;
   english: string;
+}
+
+export interface StoryData {
+  story: AlignedWord[];
 }
 
 export interface VocabularyWord {

@@ -332,6 +332,15 @@ export default function Home() {
                 <div className="flex-1">
                   <h3 className="text-[#F07167] font-semibold mb-2">Error</h3>
                   <p className="text-[#F07167] mb-3">{error}</p>
+                  {/* Special message for non-fluent English translation */}
+                  {error.includes('fluent English sentence') && (
+                    <div className="mt-3 p-3 bg-[#FDFCDC] border border-[#FED9B7] rounded-lg">
+                      <p className="text-[#F07167] text-sm">
+                        <strong>Sorry!</strong> The AI could not generate a natural English translation. Please try again.<br />
+                        This sometimes happens for complex or unusual topics.
+                      </p>
+                    </div>
+                  )}
                   <div className="flex flex-col sm:flex-row gap-2">
                     <button
                       onClick={generateStory}

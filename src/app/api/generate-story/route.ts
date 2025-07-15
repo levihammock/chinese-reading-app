@@ -180,95 +180,79 @@ IMPORTANT RULES:
 
     console.log('Sending request to Claude...');
 
-    try {
-      const message = await anthropic.messages.create({
-        model: 'claude-3-5-sonnet-20241022',
-        max_tokens: 1000,
-        messages: [
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-      });
-
-      console.log('Received response from Claude');
-
-      const content = message.content[0];
-      
-      if (content.type === 'text') {
-        console.log('Raw response length:', content.text.length);
-        console.log('Raw response preview:', content.text.substring(0, 200) + '...');
-        
-        // Try to extract and parse JSON from the response
-        const storyData = extractJSONFromText(content.text);
-        // Fallback post-processing: if the AI returned sentence-level objects, split them into word-level objects
-        // If the AI returned the new object format
-        if (storyData && Array.isArray(storyData.aligned)) {
-          // Fallback post-processing for aligned array
-          let aligned = storyData.aligned;
-          if (aligned.length > 0 && typeof aligned[0].chinese === 'string' && aligned[0].chinese.length > 2) {
-            const newArray = [];
-            for (const obj of aligned) {
-              if (obj.chinese.length > 2 && obj.chinese.indexOf(' ') === -1) {
-                const pinyinArr = obj.pinyin.split(' ');
-                const englishArr = obj.english.split(' ');
-                for (let i = 0; i < obj.chinese.length; i++) {
-                  newArray.push({
-                    chinese: obj.chinese[i],
-                    pinyin: pinyinArr[i] || '',
-                    english: englishArr[i] || ''
-                  });
-                }
-              } else {
-                newArray.push(obj);
-              }
-            }
-            aligned = newArray;
-          }
-          return NextResponse.json({
-            story: aligned,
-            sentence: storyData.sentence,
-            isAIGenerated: true
-          });
-        } else if (Array.isArray(storyData) && storyData.length > 0 && storyData[0].chinese && storyData[0].pinyin && storyData[0].english) {
-          // Legacy fallback: just an array
-          return NextResponse.json({
-            story: storyData,
-            sentence: storyData.map(w => w.english).join(' '),
-            isAIGenerated: true
-          });
-        } else {
-          console.error('Invalid response structure or missing fields:', storyData);
-          // Log the problematic response for debugging
-          console.error('Problematic response:', content.text);
-          return NextResponse.json(
-            { 
-              error: 'Invalid story format received from AI',
-              details: 'The AI response did not contain the required aligned array of objects.'
+    const maxRetries = 3;
+    let attempt = 0;
+    let lastError = null;
+    while (attempt < maxRetries) {
+      try {
+        const message = await anthropic.messages.create({
+          model: 'claude-3-5-sonnet-20241022',
+          max_tokens: 1000,
+          messages: [
+            {
+              role: 'user',
+              content: prompt,
             },
-            { status: 500 }
-          );
+          ],
+        });
+
+        const content = message.content[0];
+        if (content.type === 'text') {
+          const storyData = extractJSONFromText(content.text);
+          if (storyData && Array.isArray(storyData.aligned)) {
+            // Check if sentence is present and looks fluent (not just a word list)
+            const sentence = storyData.sentence;
+            // Heuristic: sentence should be at least 5 words, contain spaces, and not contain too many Chinese characters
+            const isFluent = sentence && typeof sentence === 'string' && sentence.trim().split(' ').length > 5 && /[a-zA-Z]/.test(sentence) && !/[\u4e00-\u9fa5]/.test(sentence);
+            if (isFluent) {
+              // Fallback post-processing for aligned array
+              let aligned = storyData.aligned;
+              if (aligned.length > 0 && typeof aligned[0].chinese === 'string' && aligned[0].chinese.length > 2) {
+                const newArray = [];
+                for (const obj of aligned) {
+                  if (obj.chinese.length > 2 && obj.chinese.indexOf(' ') === -1) {
+                    const pinyinArr = obj.pinyin.split(' ');
+                    const englishArr = obj.english.split(' ');
+                    for (let i = 0; i < obj.chinese.length; i++) {
+                      newArray.push({
+                        chinese: obj.chinese[i],
+                        pinyin: pinyinArr[i] || '',
+                        english: englishArr[i] || ''
+                      });
+                    }
+                  } else {
+                    newArray.push(obj);
+                  }
+                }
+                aligned = newArray;
+              }
+              return NextResponse.json({
+                story: aligned,
+                sentence: sentence,
+                isAIGenerated: true
+              });
+            } else {
+              lastError = 'AI did not return a fluent English sentence.';
+            }
+          } else {
+            lastError = 'AI response missing aligned array or sentence.';
+          }
+        } else {
+          lastError = 'Unexpected content type from AI.';
         }
-      } else {
-        console.error('Unexpected content type:', content.type);
-        return NextResponse.json(
-          { error: 'Unexpected response format from AI' },
-          { status: 500 }
-        );
+      } catch (apiError: any) {
+        lastError = apiError?.message || 'Anthropic API error';
       }
-    } catch (apiError) {
-      console.error('Anthropic API error:', apiError);
-      
-      // Fallback to predefined stories
-      console.log('Using fallback story due to API error');
-      const fallbackStory = generateFallbackStory(skillLevel, subject);
-      return NextResponse.json({
-        story: fallbackStory,
-        isAIGenerated: false,
-        note: 'Generated using fallback due to API error'
-      });
+      attempt++;
     }
+    // If we reach here, all attempts failed
+    return NextResponse.json(
+      {
+        error: 'Failed to generate properly formatted story',
+        details: lastError || 'AI did not return a valid story with a fluent English sentence.'
+      },
+      { status: 500 }
+    );
   } catch (error) {
     console.error('Unexpected error:', error);
     return NextResponse.json(

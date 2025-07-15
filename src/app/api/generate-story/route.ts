@@ -201,7 +201,7 @@ IMPORTANT RULES:
         console.log('Raw response preview:', content.text.substring(0, 200) + '...');
         
         // Try to extract and parse JSON from the response
-        let storyData = extractJSONFromText(content.text);
+        const storyData = extractJSONFromText(content.text);
         // Fallback post-processing: if the AI returned sentence-level objects, split them into word-level objects
         // If the AI returned the new object format
         if (storyData && Array.isArray(storyData.aligned)) {

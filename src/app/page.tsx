@@ -43,6 +43,38 @@ const loadDictionary = async () => {
   }
 };
 
+// HSK level color map
+const hskLevelColors: Record<string, string> = {
+  'HSK 1': '#4CAF50', // Green
+  'HSK 2': '#2196F3', // Blue
+  'HSK 3': '#FFC107', // Amber
+  'HSK 4': '#FF9800', // Orange
+  'HSK 5': '#E91E63', // Pink
+  'HSK 6': '#9C27B0', // Purple
+  'Not in HSK': '#BDBDBD', // Grey
+};
+
+// Helper to get HSK level and color for a word
+const getHSKLevelAndColor = (pinyin: string, chinese: string): { hskLevel: string, color: string } => {
+  let translation: DictionaryEntry | null = null;
+  if (pinyinMap && charMap) { // Ensure pinyinMap and charMap are loaded
+    // Try pinyin lookup first
+    const normalizedPinyin = pinyin.toLowerCase().replace(/[0-9]/g, '').replace(/\s+/g, '');
+    translation = pinyinMap.get(normalizedPinyin) || null;
+
+    // Fallback to char lookup if needed
+    if (!translation && chinese && charMap.has(chinese)) {
+      translation = charMap.get(chinese) || null;
+    }
+  }
+
+  if (translation && typeof translation.hskLevel === 'number') {
+    const hsk = `HSK ${translation.hskLevel}`;
+    return { hskLevel: hsk, color: hskLevelColors[hsk] || hskLevelColors['Not in HSK'] };
+  }
+  return { hskLevel: 'Not in HSK', color: hskLevelColors['Not in HSK'] };
+};
+
 export default function Home() {
   const [skillLevel, setSkillLevel] = useState<SkillLevel>('HSK1');
   const [subject, setSubject] = useState('');
@@ -104,19 +136,33 @@ export default function Home() {
   const renderAlignedStory = (storyArray: { chinese: string; pinyin: string; english: string }[], mode: ViewMode) => {
     return (
       <div className="text-center">
-        {storyArray.map((item, idx) => (
-          <span
-            key={idx}
-            className="inline-block cursor-pointer hover:bg-[#F694C1] hover:bg-opacity-20 rounded px-1 transition-colors duration-200"
-            onMouseMove={e => handleMouseMove(e, item.pinyin, item.chinese, item.english)}
-            onMouseLeave={handleMouseLeave}
-          >
-            {mode === 'chinese' && item.chinese}
-            {mode === 'pinyin' && item.pinyin}
-            {mode === 'english' && item.english}
-            {' '}
-          </span>
-        ))}
+        {storyArray.map((item, idx) => {
+          // Only apply underline color in Chinese mode
+          let underlineStyle = {};
+          if (mode === 'chinese') {
+            const { color } = getHSKLevelAndColor(item.pinyin, item.chinese);
+            underlineStyle = {
+              textDecoration: 'underline',
+              textDecorationColor: color,
+              textUnderlineOffset: '4px',
+              textDecorationThickness: '3px',
+            };
+          }
+          return (
+            <span
+              key={idx}
+              className="inline-block cursor-pointer hover:bg-[#F694C1] hover:bg-opacity-20 rounded px-1 transition-colors duration-200"
+              onMouseMove={e => handleMouseMove(e, item.pinyin, item.chinese, item.english)}
+              onMouseLeave={handleMouseLeave}
+              style={underlineStyle}
+            >
+              {mode === 'chinese' && item.chinese}
+              {mode === 'pinyin' && item.pinyin}
+              {mode === 'english' && item.english}
+              {' '}
+            </span>
+          );
+        })}
       </div>
     );
   };
@@ -125,21 +171,29 @@ export default function Home() {
   const renderChineseWithPinyin = (storyArray: { chinese: string; pinyin: string; english: string }[]) => {
     return (
       <div className="text-center flex flex-wrap justify-center">
-        {storyArray.map((item, idx) => (
-          <span
-            key={idx}
-            className="inline-block cursor-pointer hover:bg-[#F694C1] hover:bg-opacity-20 rounded px-1 transition-colors duration-200"
-            onMouseMove={e => handleMouseMove(e, item.pinyin, item.chinese, item.english)}
-            onMouseLeave={handleMouseLeave}
-          >
-            <span className="flex flex-col items-center">
-              {showPinyin && (
-                <span className="text-xs text-[#0081A7] mb-0.5 select-none">{item.pinyin}</span>
-              )}
-              <span>{item.chinese}</span>
+        {storyArray.map((item, idx) => {
+          const { color } = getHSKLevelAndColor(item.pinyin, item.chinese);
+          return (
+            <span
+              key={idx}
+              className="inline-block cursor-pointer hover:bg-[#F694C1] hover:bg-opacity-20 rounded px-1 transition-colors duration-200"
+              onMouseMove={e => handleMouseMove(e, item.pinyin, item.chinese, item.english)}
+              onMouseLeave={handleMouseLeave}
+            >
+              <span className="flex flex-col items-center">
+                {showPinyin && (
+                  <span className="text-xs text-[#0081A7] mb-0.5 select-none">{item.pinyin}</span>
+                )}
+                <span style={{
+                  textDecoration: 'underline',
+                  textDecorationColor: color,
+                  textUnderlineOffset: '4px',
+                  textDecorationThickness: '3px',
+                }}>{item.chinese}</span>
+              </span>
             </span>
-          </span>
-        ))}
+          );
+        })}
       </div>
     );
   };
@@ -442,26 +496,50 @@ export default function Home() {
           )}
           {/* Hover Tooltip */}
           {hoveredWord && (
-            <div
-              ref={tooltipRef}
-              className="fixed bg-[#0081A7] text-white px-4 py-3 rounded-lg shadow-lg z-50 pointer-events-none transform -translate-x-1/2 -translate-y-full"
-              style={{ left: tooltipPosition.x, top: tooltipPosition.y }}
-            >
-              <div className="text-sm">
-                <div className="font-bold text-lg mb-1">{hoveredWord.pinyin}</div>
-                <div className="text-[#FDFCDC] mb-1">{hoveredWord.chinese}</div>
-                <div className={`${hoveredWord.english === "Translation not available" ? "text-[#F07167] italic" : "text-[#FED9B7]"}`}>
-                  {hoveredWord.english}
-                </div>
-                {hoveredWord.english === "Translation not available" && (
-                  <div className="text-[#FED9B7] text-xs mt-1">
-                    ⚠️ Not in dictionary
+            (() => {
+              // Lookup HSK level for the hovered word
+              let hskLevel: string | null = null;
+              let translation: DictionaryEntry | null = null;
+              if (dictionaryReady) {
+                // Try pinyin lookup first
+                translation = getAccurateTranslation(hoveredWord.pinyin);
+                // Fallback to char lookup if needed
+                if (!translation && hoveredWord.chinese && charMap && charMap.has(hoveredWord.chinese)) {
+                  translation = charMap.get(hoveredWord.chinese) || null;
+                }
+                if (translation && typeof translation.hskLevel === 'number') {
+                  hskLevel = `HSK ${translation.hskLevel}`;
+                } else {
+                  hskLevel = 'Not in HSK';
+                }
+              }
+              return (
+                <div
+                  ref={tooltipRef}
+                  className="fixed bg-[#0081A7] text-white px-4 py-3 rounded-lg shadow-lg z-50 pointer-events-none transform -translate-x-1/2 -translate-y-full"
+                  style={{ left: tooltipPosition.x, top: tooltipPosition.y }}
+                >
+                  <div className="text-sm">
+                    <div className="font-bold text-lg mb-1">{hoveredWord.pinyin}</div>
+                    <div className="text-[#FDFCDC] mb-1">{hoveredWord.chinese}</div>
+                    <div className={`${hoveredWord.english === "Translation not available" ? "text-[#F07167] italic" : "text-[#FED9B7]"}`}>
+                      {hoveredWord.english}
+                    </div>
+                    {/* HSK Level display */}
+                    <div className="text-[#FED9B7] text-xs mt-1">
+                      {hskLevel}
+                    </div>
+                    {hoveredWord.english === "Translation not available" && (
+                      <div className="text-[#FED9B7] text-xs mt-1">
+                        ⚠️ Not in dictionary
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-              {/* Arrow pointing down to the word */}
-              <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-[#0081A7]"></div>
-            </div>
+                  {/* Arrow pointing down to the word */}
+                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-[#0081A7]"></div>
+                </div>
+              );
+            })()
           )}
         </div>
       </div>

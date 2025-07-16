@@ -43,38 +43,6 @@ const loadDictionary = async () => {
   }
 };
 
-// HSK level color map
-const hskLevelColors: Record<string, string> = {
-  'HSK 1': '#4CAF50', // Green
-  'HSK 2': '#2196F3', // Blue
-  'HSK 3': '#FFC107', // Amber
-  'HSK 4': '#FF9800', // Orange
-  'HSK 5': '#E91E63', // Pink
-  'HSK 6': '#9C27B0', // Purple
-  'Not in HSK': '#BDBDBD', // Grey
-};
-
-// Helper to get HSK level and color for a word
-const getHSKLevelAndColor = (pinyin: string, chinese: string): { hskLevel: string, color: string } => {
-  let translation: DictionaryEntry | null = null;
-  if (pinyinMap && charMap) { // Ensure pinyinMap and charMap are loaded
-    // Try pinyin lookup first
-    const normalizedPinyin = pinyin.toLowerCase().replace(/[0-9]/g, '').replace(/\s+/g, '');
-    translation = pinyinMap.get(normalizedPinyin) || null;
-
-    // Fallback to char lookup if needed
-    if (!translation && chinese && charMap.has(chinese)) {
-      translation = charMap.get(chinese) || null;
-    }
-  }
-
-  if (translation && typeof translation.hskLevel === 'number') {
-    const hsk = `HSK ${translation.hskLevel}`;
-    return { hskLevel: hsk, color: hskLevelColors[hsk] || hskLevelColors['Not in HSK'] };
-  }
-  return { hskLevel: 'Not in HSK', color: hskLevelColors['Not in HSK'] };
-};
-
 export default function Home() {
   const [skillLevel, setSkillLevel] = useState<SkillLevel>('HSK1');
   const [subject, setSubject] = useState('');
@@ -89,6 +57,40 @@ export default function Home() {
   const tooltipRef = useRef<HTMLDivElement>(null);
   // Add state for showPinyin toggle (default true)
   const [showPinyin, setShowPinyin] = useState(true);
+
+  // HSK level color map
+  const hskLevelColors: Record<string, string> = {
+    'HSK 1': '#4CAF50', // Green
+    'HSK 2': '#2196F3', // Blue
+    'HSK 3': '#FFC107', // Amber
+    'HSK 4': '#FF9800', // Orange
+    'HSK 5': '#E91E63', // Pink
+    'HSK 6': '#9C27B0', // Purple
+    'Not in HSK': '#BDBDBD', // Grey
+  };
+
+  // Improved HSK lookup: full word, then pinyin, then single char
+  const getHSKLevelAndColor = (pinyin: string, chinese: string): { hskLevel: string, color: string } => {
+    let translation: DictionaryEntry | null = null;
+    if (dictionaryReady && cedictDictionary.length > 0) {
+      // Try full Chinese word first
+      translation = cedictDictionary.find(entry => entry.chinese === chinese) || null;
+      // Then try pinyin
+      if (!translation && pinyinMap) {
+        const normalizedPinyin = pinyin.toLowerCase().replace(/[0-9]/g, '').replace(/\s+/g, '');
+        translation = pinyinMap.get(normalizedPinyin) || null;
+      }
+      // Then try single character
+      if (!translation && chinese.length === 1 && charMap && charMap.has(chinese)) {
+        translation = charMap.get(chinese) || null;
+      }
+    }
+    if (translation && typeof translation.hskLevel === 'number') {
+      const hsk = `HSK ${translation.hskLevel}`;
+      return { hskLevel: hsk, color: hskLevelColors[hsk] || hskLevelColors['Not in HSK'] };
+    }
+    return { hskLevel: 'Not in HSK', color: hskLevelColors['Not in HSK'] };
+  };
 
   // Load dictionary on component mount
   useEffect(() => {

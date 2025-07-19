@@ -85,12 +85,16 @@ export default function Home() {
         translation = charMap.get(chinese) || null;
       }
     }
+    // Debug log for lookup
+    console.log('LOOKUP', { chinese, pinyin, found: translation, hsk: translation?.hskLevel });
     if (translation && typeof translation.hskLevel === 'number') {
       const hsk = `HSK ${translation.hskLevel}`;
       return { hskLevel: hsk, color: hskLevelColors[hsk] || hskLevelColors['Not in HSK'] };
     }
     return { hskLevel: 'Not in HSK', color: hskLevelColors['Not in HSK'] };
   };
+
+  // TODO: The Simplified Chinese text never has any punctuation. Consider post-processing the story output to add appropriate punctuation marks (e.g., '。', '，', '！', '？') based on sentence structure or LLM output.
 
   // Load dictionary on component mount
   useEffect(() => {

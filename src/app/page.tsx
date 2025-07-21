@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, Suspense } from 'react';
 import { SkillLevel, ViewMode, StoryData, VocabularyWord } from '@/types';
-import type { DictionaryEntry } from '@/data/cedict-dictionary';
+import type { DictionaryEntry } from '@/data/cedict-dictionary-merged';
 import { Quicksand } from 'next/font/google';
 
 const quicksand = Quicksand({ subsets: ['latin'], weight: ['400', '500', '700'] });
@@ -17,7 +17,7 @@ const loadDictionary = async () => {
   if (dictionaryLoaded) return;
   
   try {
-    const { cedictDictionary: dict } = await import('@/data/cedict-dictionary');
+    const { cedictDictionary: dict } = await import('@/data/cedict-dictionary-merged');
     cedictDictionary = dict;
     
     // Build lookup maps for fast access

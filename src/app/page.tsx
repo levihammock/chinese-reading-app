@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react';
 import { SkillLevel } from '@/types';
 import { Quicksand } from 'next/font/google';
+import React from 'react'; // Added for useEffect
 
 const quicksand = Quicksand({ subsets: ['latin'], weight: ['400', '500', '700'] });
 
@@ -55,6 +56,13 @@ export default function Home() {
   const [showAll, setShowAll] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // Quiz state
+  const [quizStarted, setQuizStarted] = useState(false);
+  const [quizMatches, setQuizMatches] = useState<(string | null)[]>([]); // index: vocab idx, value: matched english
+  const [quizFeedback, setQuizFeedback] = useState<(null | 'correct' | 'incorrect')[]>([]); // index: vocab idx
+  const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
+  const [quizComplete, setQuizComplete] = useState(false);
+
   // Handler for HSK selection
   const handleContinue = () => {
     setPage(2);
@@ -87,9 +95,75 @@ export default function Home() {
     setRevealed(Array(vocab.length).fill(true));
   };
 
-  // Handler for continue (to next lesson, not implemented yet)
+  // Handler for continue (to next lesson, now starts quiz)
   const handleContinueLesson = () => {
-    // TODO: Go to next lesson
+    setQuizStarted(true);
+    setPage(4);
+    setQuizMatches(Array(vocab.length).fill(null));
+    setQuizFeedback(Array(vocab.length).fill(null));
+    setQuizComplete(false);
+  };
+
+  // Quiz drag handlers
+  const handleDragStart = (idx: number) => {
+    setDraggedIdx(idx);
+  };
+  const handleDragEnd = () => {
+    setDraggedIdx(null);
+  };
+  const handleDrop = (targetIdx: number) => {
+    if (draggedIdx === null) return;
+    // If already matched, do nothing
+    if (quizMatches[targetIdx]) return;
+    const english = quizShuffledEnglish[draggedIdx];
+    if (english === vocab[targetIdx].english) {
+      // Correct match
+      const newMatches = [...quizMatches];
+      newMatches[targetIdx] = english;
+      setQuizMatches(newMatches);
+      const newFeedback = [...quizFeedback];
+      newFeedback[targetIdx] = 'correct';
+      setQuizFeedback(newFeedback);
+      // Check for win
+      if (newMatches.every((val, i) => val === vocab[i].english)) {
+        setQuizComplete(true);
+      }
+    } else {
+      // Incorrect match
+      const newFeedback = [...quizFeedback];
+      newFeedback[targetIdx] = 'incorrect';
+      setQuizFeedback(newFeedback);
+      setTimeout(() => {
+        setQuizFeedback(fb => {
+          const reset = [...fb];
+          if (reset[targetIdx] === 'incorrect') reset[targetIdx] = null;
+          return reset;
+        });
+      }, 1000);
+    }
+    setDraggedIdx(null);
+  };
+
+  // Shuffle English words for quiz
+  const [quizShuffledEnglish, setQuizShuffledEnglish] = useState<string[]>([]);
+  React.useEffect(() => {
+    if (quizStarted) {
+      const shuffled = [...vocab.map(w => w.english)].sort(() => 0.5 - Math.random());
+      setQuizShuffledEnglish(shuffled);
+    }
+  }, [quizStarted, vocab]);
+
+  // Handler for next game (reset quiz)
+  const handleNextGame = () => {
+    setQuizStarted(false);
+    setPage(1);
+    setVocab([]);
+    setRevealed([]);
+    setShowAll(false);
+    setQuizMatches([]);
+    setQuizFeedback([]);
+    setQuizComplete(false);
+    setSubject('');
   };
 
   return (
@@ -197,6 +271,65 @@ export default function Home() {
                   </button>
                 </div>
               </>
+            )}
+          </div>
+        )}
+        {page === 4 && quizStarted && (
+          <div className="w-full max-w-2xl bg-[#FDFCDC] rounded-2xl shadow-lg p-8 flex flex-col items-center relative min-h-[400px]">
+            <h3 className="text-2xl font-bold text-[#0081A7] mb-6">Quiz: Match the English to Chinese</h3>
+            <div className="flex flex-col md:flex-row gap-8 w-full justify-center">
+              {/* Chinese/Pinyin column */}
+              <div className="flex flex-col gap-4 flex-1">
+                {vocab.map((word, idx) => (
+                  <div
+                    key={idx}
+                    className={`flex items-center gap-4 p-3 rounded-xl bg-white shadow-md min-h-[60px] border-2 transition-all duration-200
+                      ${quizFeedback[idx] === 'correct' ? 'border-green-500' : quizFeedback[idx] === 'incorrect' ? 'border-red-500' : 'border-transparent'}`}
+                    onDragOver={e => {
+                      e.preventDefault();
+                    }}
+                    onDrop={() => handleDrop(idx)}
+                  >
+                    <div className="flex flex-col items-start min-w-[100px]">
+                      <span className="text-2xl text-[#0081A7] font-bold">{word.chinese}</span>
+                      <span className="text-[#00AFB9] text-base">{word.pinyin}</span>
+                    </div>
+                    {/* Feedback icon */}
+                    {quizFeedback[idx] === 'correct' && <span className="ml-2 text-green-600 text-2xl">✓</span>}
+                    {quizFeedback[idx] === 'incorrect' && <span className="ml-2 text-red-500 text-2xl">✗</span>}
+                  </div>
+                ))}
+              </div>
+              {/* English draggable column */}
+              <div className="flex flex-col gap-4 flex-1">
+                {quizShuffledEnglish.map((eng, idx) => {
+                  // If already matched, disable drag
+                  const isMatched = quizMatches.includes(eng);
+                  return (
+                    <div
+                      key={eng}
+                      className={`p-3 rounded-xl bg-white shadow-md min-h-[60px] flex items-center justify-center border-2 border-transparent text-[#F07167] text-lg font-semibold select-none
+                        ${isMatched ? 'opacity-40 cursor-not-allowed' : 'cursor-grab active:cursor-grabbing'}`}
+                      draggable={!isMatched}
+                      onDragStart={() => handleDragStart(idx)}
+                      onDragEnd={handleDragEnd}
+                    >
+                      {eng}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            {quizComplete && (
+              <div className="mt-8 flex flex-col items-center">
+                <div className="text-2xl text-green-600 font-bold mb-4">🎉 Congrats! You matched all the words!</div>
+                <button
+                  className="px-8 py-3 bg-gradient-to-r from-[#FED9B7] to-[#F07167] text-[#0081A7] font-semibold rounded-xl hover:from-[#F07167] hover:to-[#FED9B7] transition-all duration-200 shadow-lg hover:shadow-xl"
+                  onClick={handleNextGame}
+                >
+                  Next game
+                </button>
+              </div>
             )}
           </div>
         )}

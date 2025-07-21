@@ -60,8 +60,11 @@ export default function Home() {
   const [quizStarted, setQuizStarted] = useState(false);
   const [quizMatches, setQuizMatches] = useState<(string | null)[]>([]); // index: vocab idx, value: matched english
   const [quizFeedback, setQuizFeedback] = useState<(null | 'correct' | 'incorrect')[]>([]); // index: vocab idx
-  const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
+  const [dragged, setDragged] = useState<{ type: 'eng' | 'chi', idx: number } | null>(null);
   const [quizComplete, setQuizComplete] = useState(false);
+  const [congratsMsg, setCongratsMsg] = useState('');
+  const congratsOptions = ['You did it!', 'Well done!', 'Good job!'];
+  const [showCongrats, setShowCongrats] = useState(false);
 
   // Handler for HSK selection
   const handleContinue = () => {
@@ -104,44 +107,53 @@ export default function Home() {
     setQuizComplete(false);
   };
 
-  // Quiz drag handlers
-  const handleDragStart = (idx: number) => {
-    setDraggedIdx(idx);
+  // Quiz drag handlers (bidirectional)
+  const handleDragStart = (type: 'eng' | 'chi', idx: number) => {
+    setDragged({ type, idx });
   };
   const handleDragEnd = () => {
-    setDraggedIdx(null);
+    setDragged(null);
   };
-  const handleDrop = (targetIdx: number) => {
-    if (draggedIdx === null) return;
+  const handleDrop = (targetType: 'eng' | 'chi', targetIdx: number) => {
+    if (!dragged) return;
+    // Only allow dropping on the opposite type
+    if (dragged.type === targetType) return;
     // If already matched, do nothing
-    if (quizMatches[targetIdx]) return;
-    const english = quizShuffledEnglish[draggedIdx];
-    if (english === vocab[targetIdx].english) {
+    if (quizMatches[targetType === 'chi' ? targetIdx : dragged.idx]) return;
+    const chiIdx = targetType === 'chi' ? targetIdx : dragged.idx;
+    const engIdx = targetType === 'eng' ? targetIdx : dragged.idx;
+    const english = quizShuffledEnglish[engIdx];
+    if (english === vocab[chiIdx].english) {
       // Correct match
       const newMatches = [...quizMatches];
-      newMatches[targetIdx] = english;
+      newMatches[chiIdx] = english;
       setQuizMatches(newMatches);
       const newFeedback = [...quizFeedback];
-      newFeedback[targetIdx] = 'correct';
+      newFeedback[chiIdx] = 'correct';
       setQuizFeedback(newFeedback);
       // Check for win
       if (newMatches.every((val, i) => val === vocab[i].english)) {
         setQuizComplete(true);
+        // Show congrats animation
+        const msg = congratsOptions[Math.floor(Math.random() * congratsOptions.length)];
+        setCongratsMsg(msg);
+        setShowCongrats(true);
+        setTimeout(() => setShowCongrats(false), 1500);
       }
     } else {
       // Incorrect match
       const newFeedback = [...quizFeedback];
-      newFeedback[targetIdx] = 'incorrect';
+      newFeedback[chiIdx] = 'incorrect';
       setQuizFeedback(newFeedback);
       setTimeout(() => {
         setQuizFeedback(fb => {
           const reset = [...fb];
-          if (reset[targetIdx] === 'incorrect') reset[targetIdx] = null;
+          if (reset[chiIdx] === 'incorrect') reset[chiIdx] = null;
           return reset;
         });
       }, 1000);
     }
-    setDraggedIdx(null);
+    setDragged(null);
   };
 
   // Shuffle English words for quiz
@@ -284,11 +296,15 @@ export default function Home() {
                   <div
                     key={idx}
                     className={`flex items-center gap-4 p-3 rounded-xl bg-white shadow-md min-h-[60px] border-2 transition-all duration-200
-                      ${quizFeedback[idx] === 'correct' ? 'border-green-500' : quizFeedback[idx] === 'incorrect' ? 'border-red-500' : 'border-transparent'}`}
+                      ${quizFeedback[idx] === 'correct' ? 'border-green-500' : quizFeedback[idx] === 'incorrect' ? 'border-red-500' : 'border-transparent'}
+                      ${dragged && dragged.type === 'eng' && !quizMatches[idx] ? 'ring-2 ring-[#00AFB9]' : ''}`}
+                    draggable={!quizMatches[idx]}
+                    onDragStart={() => !quizMatches[idx] && handleDragStart('chi', idx)}
+                    onDragEnd={handleDragEnd}
                     onDragOver={e => {
                       e.preventDefault();
                     }}
-                    onDrop={() => handleDrop(idx)}
+                    onDrop={() => handleDrop('chi', idx)}
                   >
                     <div className="flex flex-col items-start min-w-[100px]">
                       <span className="text-2xl text-[#0081A7] font-bold">{word.chinese}</span>
@@ -309,10 +325,15 @@ export default function Home() {
                     <div
                       key={eng}
                       className={`p-3 rounded-xl bg-white shadow-md min-h-[60px] flex items-center justify-center border-2 border-transparent text-[#F07167] text-lg font-semibold select-none
-                        ${isMatched ? 'opacity-40 cursor-not-allowed' : 'cursor-grab active:cursor-grabbing'}`}
+                        ${isMatched ? 'opacity-40 cursor-not-allowed' : 'cursor-grab active:cursor-grabbing'}
+                        ${dragged && dragged.type === 'chi' && !isMatched ? 'ring-2 ring-[#00AFB9]' : ''}`}
                       draggable={!isMatched}
-                      onDragStart={() => handleDragStart(idx)}
+                      onDragStart={() => !isMatched && handleDragStart('eng', idx)}
                       onDragEnd={handleDragEnd}
+                      onDragOver={e => {
+                        e.preventDefault();
+                      }}
+                      onDrop={() => handleDrop('eng', idx)}
                     >
                       {eng}
                     </div>
@@ -320,7 +341,15 @@ export default function Home() {
                 })}
               </div>
             </div>
-            {quizComplete && (
+            {/* Congrats animation */}
+            {showCongrats && (
+              <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
+                <div className="text-5xl font-extrabold text-[#00AFB9] animate-bounce drop-shadow-lg" style={{textShadow:'0 2px 8px #fff'}}>
+                  {congratsMsg}
+                </div>
+              </div>
+            )}
+            {quizComplete && !showCongrats && (
               <div className="mt-8 flex flex-col items-center">
                 <div className="text-2xl text-green-600 font-bold mb-4">🎉 Congrats! You matched all the words!</div>
                 <button

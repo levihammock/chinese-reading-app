@@ -28,4 +28,11 @@ export interface SavedStory {
   subject: string;
   timestamp: number;
   vocabulary: VocabularyWord[];
+}
+
+export interface DictionaryEntry {
+  chinese: string;
+  pinyin: string;
+  english: string;
+  hskLevel?: number;
 } 

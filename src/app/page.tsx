@@ -180,14 +180,16 @@ export default function Home() {
                 </div>
                 <div className="flex flex-col items-center w-full mt-8 gap-4">
                   <button
-                    className="px-8 py-3 bg-gradient-to-r from-[#FED9B7] to-[#F07167] text-[#0081A7] font-semibold rounded-xl hover:from-[#F07167] hover:to-[#FED9B7] transition-all duration-200 shadow-lg hover:shadow-xl w-full max-w-xs"
+                    className={`px-8 py-3 bg-gradient-to-r from-[#FED9B7] to-[#F07167] text-[#0081A7] font-semibold rounded-xl transition-all duration-200 shadow-lg w-full max-w-xs
+                      ${!(showAll || revealed.every(Boolean)) ? 'hover:from-[#F07167] hover:to-[#FED9B7] hover:shadow-xl' : 'opacity-50 cursor-not-allowed'}`}
                     onClick={handleShowAll}
                     disabled={showAll || revealed.every(Boolean)}
                   >
                     Show All
                   </button>
                   <button
-                    className="px-8 py-3 bg-[#00AFB9] text-white font-semibold rounded-xl shadow-lg hover:bg-[#0081A7] transition-all duration-200 w-full max-w-xs text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                    className={`px-8 py-3 bg-[#00AFB9] text-white font-semibold rounded-xl shadow-lg w-full max-w-xs text-lg transition-all duration-200
+                      ${revealed.every(Boolean) ? 'hover:bg-[#0081A7]' : 'opacity-50 cursor-not-allowed'}`}
                     onClick={handleContinueLesson}
                     disabled={!revealed.every(Boolean)}
                   >

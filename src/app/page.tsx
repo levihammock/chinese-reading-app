@@ -66,25 +66,6 @@ export default function Home() {
   const congratsOptions = ['You did it!', 'Well done!', 'Good job!'];
   const [showCongrats, setShowCongrats] = useState(false);
 
-  // Refs for scrollable columns
-  const chiColRef = React.useRef<HTMLDivElement>(null);
-  const engColRef = React.useRef<HTMLDivElement>(null);
-
-  // Auto-scroll logic for drag over
-  const handleAutoScroll = (ref: React.RefObject<HTMLDivElement | null>, e: React.DragEvent) => {
-    const el = ref.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    const y = e.clientY - rect.top;
-    const threshold = 40; // px from top/bottom to trigger scroll
-    const scrollSpeed = 16; // px per event
-    if (y < threshold) {
-      el.scrollTop -= scrollSpeed;
-    } else if (y > rect.height - threshold) {
-      el.scrollTop += scrollSpeed;
-    }
-  };
-
   // Handler for HSK selection
   const handleContinue = () => {
     setPage(2);
@@ -197,11 +178,42 @@ export default function Home() {
     setSubject('');
   };
 
+  // Render header and subheader based on current page
+  const renderHeader = () => {
+    if (page === 1) {
+      return (
+        <>
+          <h1 className="text-4xl font-bold text-[#0081A7] mb-4 mt-8">KanKan</h1>
+          <h2 className="text-lg text-[#00AFB9] mb-10 font-medium">Improve your Chinese skills with one simple lesson a day</h2>
+        </>
+      );
+    } else if (page === 3) {
+      return (
+        <>
+          <h1 className="text-4xl font-bold text-[#0081A7] mb-4 mt-8">Lesson 1: Vocabulary</h1>
+          <h2 className="text-lg text-[#00AFB9] mb-10 font-medium">Let's start by learning some new words</h2>
+        </>
+      );
+    } else if (page === 4) {
+      return (
+        <>
+          <h1 className="text-4xl font-bold text-[#0081A7] mb-4 mt-8">Exercise #1</h1>
+        </>
+      );
+    } else {
+      return (
+        <>
+          <h1 className="text-4xl font-bold text-[#0081A7] mb-4 mt-8">KanKan</h1>
+          <h2 className="text-lg text-[#00AFB9] mb-10 font-medium">Improve your Chinese skills with one simple lesson a day</h2>
+        </>
+      );
+    }
+  };
+
   return (
     <div className={`min-h-screen bg-white ${quicksand.className}`}>
       <div className="flex flex-col items-center justify-center min-h-screen">
-        <h1 className="text-4xl font-bold text-[#0081A7] mb-4 mt-8">KanKan</h1>
-        <h2 className="text-lg text-[#00AFB9] mb-10 font-medium">Improve your Chinese skills with one simple lesson a day</h2>
+        {renderHeader()}
         {page === 1 && (
           <div className="w-full max-w-md bg-[#FDFCDC] rounded-2xl shadow-lg p-8 flex flex-col items-center">
             <label className="block text-lg font-semibold text-[#0081A7] mb-4">Choose your level</label>
@@ -250,7 +262,7 @@ export default function Home() {
         )}
         {page === 3 && (
           <div className="w-full max-w-2xl bg-[#FDFCDC] rounded-2xl shadow-lg p-8 flex flex-col items-center relative min-h-[400px]">
-            <h3 className="text-2xl font-bold text-[#0081A7] mb-6">Lesson 1: Vocabulary</h3>
+            <h3 className="text-2xl font-bold text-[#0081A7] mb-6">New Vocabulary</h3>
             {loading ? (
               <div className="text-[#0081A7] text-lg">Loading vocabulary...</div>
             ) : (
@@ -307,14 +319,10 @@ export default function Home() {
           )}
         {page === 4 && quizStarted && (
           <div className="w-full max-w-2xl bg-[#FDFCDC] rounded-2xl shadow-lg p-8 flex flex-col items-center relative min-h-[400px]">
-            <h3 className="text-2xl font-bold text-[#0081A7] mb-6">Quiz: Match the English to Chinese</h3>
+            <h3 className="text-2xl font-bold text-[#0081A7] mb-6">Match the English and Chinese</h3>
             <div className="flex flex-col md:flex-row gap-8 w-full justify-center">
               {/* Chinese/Pinyin column */}
-              <div
-                className="flex flex-col gap-4 flex-1 max-h-96 overflow-y-auto pr-2"
-                ref={chiColRef}
-                onDragOver={e => handleAutoScroll(chiColRef, e)}
-              >
+              <div className="flex flex-col gap-4 flex-1">
                 {vocab.map((word, idx) => {
                   const matchedEng = quizMatches[idx];
                   return (
@@ -326,10 +334,7 @@ export default function Home() {
                       draggable={!quizMatches[idx]}
                       onDragStart={() => !quizMatches[idx] && handleDragStart('chi', idx)}
                       onDragEnd={handleDragEnd}
-                      onDragOver={e => {
-                        e.preventDefault();
-                        handleAutoScroll(chiColRef, e);
-                      }}
+                      onDragOver={e => e.preventDefault()}
                       onDrop={() => handleDrop('chi', idx)}
                     >
                       <div className="flex flex-col items-start min-w-[100px]">
@@ -344,11 +349,7 @@ export default function Home() {
                 })}
               </div>
               {/* English draggable column */}
-              <div
-                className="flex flex-col gap-4 flex-1 max-h-96 overflow-y-auto pl-2"
-                ref={engColRef}
-                onDragOver={e => handleAutoScroll(engColRef, e)}
-              >
+              <div className="flex flex-col gap-4 flex-1">
                 {quizShuffledEnglish.map((eng, idx) => {
                   // If already matched, disable drag
                   const isMatched = quizMatches.includes(eng);
@@ -357,17 +358,14 @@ export default function Home() {
                   return (
                     <div
                       key={eng}
-                      className={`p-3 rounded-xl bg-white shadow-md min-h-[60px] flex items-center justify-center border-2 border-transparent text-[#F07167] text-lg font-semibold select-none
-                        ${isMatched ? 'opacity-40 cursor-not-allowed' : 'cursor-grab active:cursor-grabbing'}
+                      className={`p-3 rounded-xl bg-white shadow-md min-h-[60px] flex items-center justify-center border-2 transition-all duration-200 text-[#F07167] text-lg font-semibold select-none
+                        ${isMatched ? 'cursor-not-allowed' : 'cursor-grab active:cursor-grabbing'}
                         ${(dragged && dragged.type === 'chi' && !isMatched) ? 'ring-2 ring-[#00AFB9]' : ''}
-                        ${(isMatched || (chiIdx !== -1 && quizFeedback[chiIdx] === 'correct')) ? 'border-green-500' : ''}`}
+                        ${(isMatched || (chiIdx !== -1 && quizFeedback[chiIdx] === 'correct')) ? 'border-green-500' : 'border-transparent'}`}
                       draggable={!isMatched}
                       onDragStart={() => !isMatched && handleDragStart('eng', idx)}
                       onDragEnd={handleDragEnd}
-                      onDragOver={e => {
-                        e.preventDefault();
-                        handleAutoScroll(engColRef, e);
-                      }}
+                      onDragOver={e => e.preventDefault()}
                       onDrop={() => handleDrop('eng', idx)}
                     >
                       {eng}

@@ -191,7 +191,7 @@ export default function Home() {
       return (
         <>
           <h1 className="text-4xl font-bold text-[#0081A7] mb-4 mt-8">Lesson 1: Vocabulary</h1>
-          <h2 className="text-lg text-[#00AFB9] mb-10 font-medium">Let's start by learning some new words</h2>
+          <h2 className="text-lg text-[#00AFB9] mb-10 font-medium">Let&apos;s start by learning some new words</h2>
         </>
       );
     } else if (page === 4) {

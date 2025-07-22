@@ -67,6 +67,21 @@ export default function Home() {
   const [showCongrats, setShowCongrats] = useState(false);
   const [hoveredCard, setHoveredCard] = useState<{ type: 'eng' | 'chi', idx: number } | null>(null);
 
+  // Multiple choice quiz state
+  const [multipleChoiceStarted, setMultipleChoiceStarted] = useState(false);
+  const [quizQuestions, setQuizQuestions] = useState<Array<{
+    chinese: string;
+    correctAnswer: string;
+    options: string[];
+  }>>([]);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [selectedAnswers, setSelectedAnswers] = useState<string[]>([]);
+  const [quizResults, setQuizResults] = useState<{
+    correct: number;
+    total: number;
+    percentage: number;
+  } | null>(null);
+
   // Handler for HSK selection
   const handleContinue = () => {
     setPage(2);
@@ -173,15 +188,97 @@ export default function Home() {
 
   // Handler for next game (reset quiz)
   const handleNextGame = () => {
-    setQuizStarted(false);
-    setPage(1);
-    setVocab([]);
-    setRevealed([]);
-    setShowAll(false);
-    setQuizMatches([]);
-    setQuizFeedback([]);
-    setQuizComplete(false);
-    setSubject('');
+    handleStartMultipleChoice();
+  };
+
+  // Generate multiple choice questions from vocabulary
+  const generateMultipleChoiceQuestions = (vocabWords: VocabWord[]) => {
+    const questions = vocabWords.map(word => {
+      // Get all other English translations as potential wrong answers
+      const otherAnswers = vocabWords
+        .filter(v => v.english !== word.english)
+        .map(v => v.english);
+      
+      // Shuffle and take 3 wrong answers
+      const wrongAnswers = otherAnswers
+        .sort(() => 0.5 - Math.random())
+        .slice(0, 3);
+      
+      // Combine correct and wrong answers, then shuffle
+      const allOptions = [word.english, ...wrongAnswers]
+        .sort(() => 0.5 - Math.random());
+      
+      return {
+        chinese: word.chinese,
+        correctAnswer: word.english,
+        options: allOptions
+      };
+    });
+    
+    return questions;
+  };
+
+  // Start multiple choice quiz
+  const handleStartMultipleChoice = () => {
+    const questions = generateMultipleChoiceQuestions(vocab);
+    setQuizQuestions(questions);
+    setSelectedAnswers(Array(questions.length).fill(''));
+    setCurrentQuestionIndex(0);
+    setMultipleChoiceStarted(true);
+    setPage(5);
+  };
+
+  // Handle answer selection
+  const handleAnswerSelect = (answer: string) => {
+    const newAnswers = [...selectedAnswers];
+    newAnswers[currentQuestionIndex] = answer;
+    setSelectedAnswers(newAnswers);
+  };
+
+  // Navigate to next question
+  const handleNextQuestion = () => {
+    if (currentQuestionIndex < quizQuestions.length - 1) {
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
+    }
+  };
+
+  // Navigate to previous question
+  const handlePreviousQuestion = () => {
+    if (currentQuestionIndex > 0) {
+      setCurrentQuestionIndex(currentQuestionIndex - 1);
+    }
+  };
+
+  // Submit quiz answers
+  const handleSubmitQuiz = () => {
+    let correct = 0;
+    quizQuestions.forEach((question, index) => {
+      if (selectedAnswers[index] === question.correctAnswer) {
+        correct++;
+      }
+    });
+    
+    const percentage = Math.round((correct / quizQuestions.length) * 100);
+    setQuizResults({ correct, total: quizQuestions.length, percentage });
+    setPage(6);
+  };
+
+  // Handle quiz retry
+  const handleQuizRetry = () => {
+    setSelectedAnswers(Array(quizQuestions.length).fill(''));
+    setCurrentQuestionIndex(0);
+    setQuizResults(null);
+    setPage(5);
+  };
+
+  // Handle review lesson
+  const handleReviewLesson = () => {
+    setMultipleChoiceStarted(false);
+    setQuizQuestions([]);
+    setSelectedAnswers([]);
+    setCurrentQuestionIndex(0);
+    setQuizResults(null);
+    setPage(3); // Go back to vocabulary lesson
   };
 
   // Render header and subheader based on current page
@@ -204,6 +301,18 @@ export default function Home() {
       return (
         <>
           <h1 className="text-4xl font-bold text-[#0081A7] mb-4 mt-8">Exercise #1</h1>
+        </>
+      );
+    } else if (page === 5) {
+      return (
+        <>
+          <h1 className="text-4xl font-bold text-[#0081A7] mb-4 mt-8">Exercise #2</h1>
+        </>
+      );
+    } else if (page === 6) {
+      return (
+        <>
+          <h1 className="text-4xl font-bold text-[#0081A7] mb-4 mt-8">Exercise #2</h1>
         </>
       );
     } else {
@@ -411,6 +520,133 @@ export default function Home() {
                     )}
                   </div>
           )}
+        {page === 5 && multipleChoiceStarted && (
+          <div className="w-full max-w-2xl bg-[#FDFCDC] rounded-2xl shadow-lg p-8 flex flex-col items-center relative min-h-[400px]">
+            <h3 className="text-2xl font-bold text-[#0081A7] mb-6">Quiz: Guess the right translations</h3>
+            {quizQuestions.length > 0 && (
+              <div className="w-full">
+                <div className="text-center mb-8">
+                  <div className="text-4xl text-[#0081A7] font-bold mb-4">
+                    {quizQuestions[currentQuestionIndex].chinese}
+                  </div>
+                  <div className="text-sm text-[#00AFB9]">
+                    Question {currentQuestionIndex + 1} of {quizQuestions.length}
+                  </div>
+                </div>
+                
+                <div className="flex flex-col gap-3 mb-8">
+                  {quizQuestions[currentQuestionIndex].options.map((option, idx) => (
+                    <button
+                      key={idx}
+                      className={`p-4 rounded-xl border-2 transition-all duration-200 text-left
+                        ${selectedAnswers[currentQuestionIndex] === option 
+                          ? 'border-[#00AFB9] bg-[#00AFB9] text-white' 
+                          : 'border-[#FED9B7] bg-white text-[#0081A7] hover:border-[#00AFB9] hover:bg-[#00AFB9] hover:text-white'}`}
+                      onClick={() => handleAnswerSelect(option)}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  {currentQuestionIndex > 0 && (
+                    <button
+                      className="px-6 py-3 bg-[#FED9B7] text-[#0081A7] font-semibold rounded-xl hover:bg-[#F07167] hover:text-white transition-all duration-200"
+                      onClick={handlePreviousQuestion}
+                    >
+                      Back
+                    </button>
+                  )}
+                  <div className="flex-1"></div>
+                  {currentQuestionIndex < quizQuestions.length - 1 ? (
+                    <button
+                      className={`px-6 py-3 font-semibold rounded-xl transition-all duration-200
+                        ${selectedAnswers[currentQuestionIndex] 
+                          ? 'bg-[#00AFB9] text-white hover:bg-[#0081A7]' 
+                          : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
+                      onClick={handleNextQuestion}
+                      disabled={!selectedAnswers[currentQuestionIndex]}
+                    >
+                      Next question
+                    </button>
+                  ) : (
+                    <button
+                      className={`px-6 py-3 font-semibold rounded-xl transition-all duration-200
+                        ${selectedAnswers.every(answer => answer !== '') 
+                          ? 'bg-[#00AFB9] text-white hover:bg-[#0081A7]' 
+                          : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
+                      onClick={handleSubmitQuiz}
+                      disabled={!selectedAnswers.every(answer => answer !== '')}
+                    >
+                      Submit Answers
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+        {page === 6 && quizResults && (
+          <div className="w-full max-w-2xl bg-[#FDFCDC] rounded-2xl shadow-lg p-8 flex flex-col items-center relative min-h-[400px]">
+            <h3 className="text-2xl font-bold text-[#0081A7] mb-6">Quiz Results</h3>
+            <div className="text-center mb-8">
+              <div className="text-3xl font-bold text-[#0081A7] mb-4">
+                {quizResults.correct}/{quizResults.total} correct
+              </div>
+              <div className="text-xl text-[#00AFB9] mb-6">
+                {quizResults.percentage}% accuracy
+              </div>
+              
+              {quizResults.percentage >= 90 && (
+                <div className="text-center">
+                  <div className="text-6xl mb-4">🎉</div>
+                  <div className="text-2xl font-bold text-[#0081A7] mb-6">Good job!</div>
+                  <button
+                    className="px-8 py-3 bg-[#00AFB9] text-white font-semibold rounded-xl hover:bg-[#0081A7] transition-all duration-200"
+                    onClick={() => setPage(1)}
+                  >
+                    Next Lesson
+                  </button>
+                </div>
+              )}
+              
+              {quizResults.percentage >= 60 && quizResults.percentage < 90 && (
+                <div className="text-center">
+                  <div className="text-6xl mb-4">😐</div>
+                  <div className="text-2xl font-bold text-[#0081A7] mb-6">Almost there!</div>
+                  <button
+                    className="px-8 py-3 bg-[#00AFB9] text-white font-semibold rounded-xl hover:bg-[#0081A7] transition-all duration-200"
+                    onClick={handleQuizRetry}
+                  >
+                    Try again
+                  </button>
+                </div>
+              )}
+              
+              {quizResults.percentage < 60 && (
+                <div className="text-center">
+                  <div className="text-6xl mb-4">😢</div>
+                  <div className="text-2xl font-bold text-[#0081A7] mb-6">Keep practicing!</div>
+                  <div className="flex gap-4">
+                    <button
+                      className="px-6 py-3 bg-[#FED9B7] text-[#0081A7] font-semibold rounded-xl hover:bg-[#F07167] hover:text-white transition-all duration-200"
+                      onClick={handleQuizRetry}
+                    >
+                      Try again
+                    </button>
+                    <button
+                      className="px-6 py-3 bg-[#00AFB9] text-white font-semibold rounded-xl hover:bg-[#0081A7] transition-all duration-200"
+                      onClick={handleReviewLesson}
+                    >
+                      Review lesson
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

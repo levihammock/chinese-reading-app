@@ -66,6 +66,25 @@ export default function Home() {
   const congratsOptions = ['You did it!', 'Well done!', 'Good job!'];
   const [showCongrats, setShowCongrats] = useState(false);
 
+  // Refs for scrollable columns
+  const chiColRef = React.useRef<HTMLDivElement>(null);
+  const engColRef = React.useRef<HTMLDivElement>(null);
+
+  // Auto-scroll logic for drag over
+  const handleAutoScroll = (ref: React.RefObject<HTMLDivElement>, e: React.DragEvent) => {
+    const el = ref.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const y = e.clientY - rect.top;
+    const threshold = 40; // px from top/bottom to trigger scroll
+    const scrollSpeed = 16; // px per event
+    if (y < threshold) {
+      el.scrollTop -= scrollSpeed;
+    } else if (y > rect.height - threshold) {
+      el.scrollTop += scrollSpeed;
+    }
+  };
+
   // Handler for HSK selection
   const handleContinue = () => {
     setPage(2);
@@ -291,51 +310,69 @@ export default function Home() {
             <h3 className="text-2xl font-bold text-[#0081A7] mb-6">Quiz: Match the English to Chinese</h3>
             <div className="flex flex-col md:flex-row gap-8 w-full justify-center">
               {/* Chinese/Pinyin column */}
-              <div className="flex flex-col gap-4 flex-1">
-                {vocab.map((word, idx) => (
-                  <div
-                    key={idx}
-                    className={`flex items-center gap-4 p-3 rounded-xl bg-white shadow-md min-h-[60px] border-2 transition-all duration-200
-                      ${quizFeedback[idx] === 'correct' ? 'border-green-500' : quizFeedback[idx] === 'incorrect' ? 'border-red-500' : 'border-transparent'}
-                      ${dragged && dragged.type === 'eng' && !quizMatches[idx] ? 'ring-2 ring-[#00AFB9]' : ''}`}
-                    draggable={!quizMatches[idx]}
-                    onDragStart={() => !quizMatches[idx] && handleDragStart('chi', idx)}
-                    onDragEnd={handleDragEnd}
-                    onDragOver={e => {
-                      e.preventDefault();
-                    }}
-                    onDrop={() => handleDrop('chi', idx)}
-                  >
-                    <div className="flex flex-col items-start min-w-[100px]">
-                      <span className="text-2xl text-[#0081A7] font-bold">{word.chinese}</span>
-                      <span className="text-[#00AFB9] text-base">{word.pinyin}</span>
+              <div
+                className="flex flex-col gap-4 flex-1 max-h-96 overflow-y-auto pr-2"
+                ref={chiColRef}
+                onDragOver={e => handleAutoScroll(chiColRef, e)}
+              >
+                {vocab.map((word, idx) => {
+                  const matchedEng = quizMatches[idx];
+                  return (
+                    <div
+                      key={idx}
+                      className={`flex items-center gap-4 p-3 rounded-xl bg-white shadow-md min-h-[60px] border-2 transition-all duration-200
+                        ${quizFeedback[idx] === 'correct' || matchedEng ? 'border-green-500' : quizFeedback[idx] === 'incorrect' ? 'border-red-500' : 'border-transparent'}
+                        ${dragged && dragged.type === 'eng' && !quizMatches[idx] ? 'ring-2 ring-[#00AFB9]' : ''}`}
+                      draggable={!quizMatches[idx]}
+                      onDragStart={() => !quizMatches[idx] && handleDragStart('chi', idx)}
+                      onDragEnd={handleDragEnd}
+                      onDragOver={e => {
+                        e.preventDefault();
+                        handleAutoScroll(chiColRef, e);
+                      }}
+                      onDrop={() => handleDrop('chi', idx)}
+                    >
+                      <div className="flex flex-col items-start min-w-[100px]">
+                        <span className="text-2xl text-[#0081A7] font-bold">{word.chinese}</span>
+                        <span className="text-[#00AFB9] text-base">{word.pinyin}</span>
+                      </div>
+                      {/* Feedback icon */}
+                      {(quizFeedback[idx] === 'correct' || matchedEng) && <span className="ml-2 text-green-600 text-2xl">✓</span>}
+                      {quizFeedback[idx] === 'incorrect' && <span className="ml-2 text-red-500 text-2xl">✗</span>}
                     </div>
-                    {/* Feedback icon */}
-                    {quizFeedback[idx] === 'correct' && <span className="ml-2 text-green-600 text-2xl">✓</span>}
-                    {quizFeedback[idx] === 'incorrect' && <span className="ml-2 text-red-500 text-2xl">✗</span>}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
               {/* English draggable column */}
-              <div className="flex flex-col gap-4 flex-1">
+              <div
+                className="flex flex-col gap-4 flex-1 max-h-96 overflow-y-auto pl-2"
+                ref={engColRef}
+                onDragOver={e => handleAutoScroll(engColRef, e)}
+              >
                 {quizShuffledEnglish.map((eng, idx) => {
                   // If already matched, disable drag
                   const isMatched = quizMatches.includes(eng);
+                  // Find the index of the match if matched
+                  const chiIdx = quizMatches.findIndex(e => e === eng);
                   return (
                     <div
                       key={eng}
                       className={`p-3 rounded-xl bg-white shadow-md min-h-[60px] flex items-center justify-center border-2 border-transparent text-[#F07167] text-lg font-semibold select-none
                         ${isMatched ? 'opacity-40 cursor-not-allowed' : 'cursor-grab active:cursor-grabbing'}
-                        ${dragged && dragged.type === 'chi' && !isMatched ? 'ring-2 ring-[#00AFB9]' : ''}`}
+                        ${(dragged && dragged.type === 'chi' && !isMatched) ? 'ring-2 ring-[#00AFB9]' : ''}
+                        ${(isMatched || (chiIdx !== -1 && quizFeedback[chiIdx] === 'correct')) ? 'border-green-500' : ''}`}
                       draggable={!isMatched}
                       onDragStart={() => !isMatched && handleDragStart('eng', idx)}
                       onDragEnd={handleDragEnd}
                       onDragOver={e => {
                         e.preventDefault();
+                        handleAutoScroll(engColRef, e);
                       }}
                       onDrop={() => handleDrop('eng', idx)}
                     >
                       {eng}
+                      {/* Feedback icon for matched */}
+                      {(isMatched || (chiIdx !== -1 && quizFeedback[chiIdx] === 'correct')) && <span className="ml-2 text-green-600 text-2xl">✓</span>}
                     </div>
                   );
                 })}

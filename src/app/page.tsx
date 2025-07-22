@@ -65,6 +65,7 @@ export default function Home() {
   const [congratsMsg, setCongratsMsg] = useState('');
   const congratsOptions = ['You did it!', 'Well done!', 'Good job!'];
   const [showCongrats, setShowCongrats] = useState(false);
+  const [hoveredCard, setHoveredCard] = useState<{ type: 'eng' | 'chi', idx: number } | null>(null);
 
   // Handler for HSK selection
   const handleContinue = () => {
@@ -113,6 +114,10 @@ export default function Home() {
   };
   const handleDragEnd = () => {
     setDragged(null);
+    setHoveredCard(null);
+  };
+  const handleDragOver = (type: 'eng' | 'chi', idx: number) => {
+    setHoveredCard({ type, idx });
   };
   const handleDrop = (targetType: 'eng' | 'chi', targetIdx: number) => {
     if (!dragged) return;
@@ -154,6 +159,7 @@ export default function Home() {
       }, 1000);
     }
     setDragged(null);
+    setHoveredCard(null);
   };
 
   // Shuffle English words for quiz
@@ -325,16 +331,20 @@ export default function Home() {
               <div className="flex flex-col gap-4 flex-1">
                 {vocab.map((word, idx) => {
                   const matchedEng = quizMatches[idx];
+                  const isHovered = hoveredCard?.type === 'chi' && hoveredCard?.idx === idx;
                   return (
                     <div
                       key={idx}
                       className={`flex items-center gap-4 p-3 rounded-xl bg-white shadow-md min-h-[60px] border-2 transition-all duration-200
                         ${quizFeedback[idx] === 'correct' || matchedEng ? 'border-green-500' : quizFeedback[idx] === 'incorrect' ? 'border-red-500' : 'border-transparent'}
-                        ${dragged && dragged.type === 'eng' && !quizMatches[idx] ? 'ring-2 ring-[#00AFB9]' : ''}`}
+                        ${isHovered && dragged && dragged.type === 'eng' && !quizMatches[idx] ? 'ring-2 ring-[#00AFB9]' : ''}`}
                       draggable={!quizMatches[idx]}
                       onDragStart={() => !quizMatches[idx] && handleDragStart('chi', idx)}
                       onDragEnd={handleDragEnd}
-                      onDragOver={e => e.preventDefault()}
+                      onDragOver={e => {
+                        e.preventDefault();
+                        handleDragOver('chi', idx);
+                      }}
                       onDrop={() => handleDrop('chi', idx)}
                     >
                       <div className="flex flex-col items-start min-w-[100px]">
@@ -355,17 +365,21 @@ export default function Home() {
                   const isMatched = quizMatches.includes(eng);
                   // Find the index of the match if matched
                   const chiIdx = quizMatches.findIndex(e => e === eng);
+                  const isHovered = hoveredCard?.type === 'eng' && hoveredCard?.idx === idx;
                   return (
                     <div
                       key={eng}
                       className={`p-3 rounded-xl bg-white shadow-md min-h-[60px] flex items-center justify-center border-2 transition-all duration-200 text-[#F07167] text-lg font-semibold select-none
                         ${isMatched ? 'cursor-not-allowed' : 'cursor-grab active:cursor-grabbing'}
-                        ${(dragged && dragged.type === 'chi' && !isMatched) ? 'ring-2 ring-[#00AFB9]' : ''}
+                        ${isHovered && dragged && dragged.type === 'chi' && !isMatched ? 'ring-2 ring-[#00AFB9]' : ''}
                         ${(isMatched || (chiIdx !== -1 && quizFeedback[chiIdx] === 'correct')) ? 'border-green-500' : 'border-transparent'}`}
                       draggable={!isMatched}
                       onDragStart={() => !isMatched && handleDragStart('eng', idx)}
                       onDragEnd={handleDragEnd}
-                      onDragOver={e => e.preventDefault()}
+                      onDragOver={e => {
+                        e.preventDefault();
+                        handleDragOver('eng', idx);
+                      }}
                       onDrop={() => handleDrop('eng', idx)}
                     >
                       {eng}

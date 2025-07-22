@@ -71,7 +71,7 @@ export default function Home() {
   const engColRef = React.useRef<HTMLDivElement>(null);
 
   // Auto-scroll logic for drag over
-  const handleAutoScroll = (ref: React.RefObject<HTMLDivElement>, e: React.DragEvent) => {
+  const handleAutoScroll = (ref: React.RefObject<HTMLDivElement | null>, e: React.DragEvent) => {
     const el = ref.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
@@ -261,7 +261,7 @@ export default function Home() {
                       <div className="flex flex-col items-start min-w-[100px]">
                         <span className="text-2xl text-[#0081A7] font-bold">{word.chinese}</span>
                         <span className="text-[#00AFB9] text-base">{word.pinyin}</span>
-                      </div>
+          </div>
                       <button
                         type="button"
                         className="ml-4 px-6 py-2 rounded-lg bg-[#FED9B7] text-[#F07167] font-semibold text-base focus:outline-none focus:ring-2 focus:ring-[#F07167] transition-all duration-200"
@@ -280,9 +280,9 @@ export default function Home() {
                           {word.english}
                         </span>
                       </button>
-                    </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
+              </div>
                 <div className="flex flex-col items-center w-full mt-8 gap-4">
                   <button
                     className={`px-8 py-3 bg-gradient-to-r from-[#FED9B7] to-[#F07167] text-[#0081A7] font-semibold rounded-xl transition-all duration-200 shadow-lg w-full max-w-xs
@@ -303,8 +303,8 @@ export default function Home() {
                 </div>
               </>
             )}
-          </div>
-        )}
+            </div>
+          )}
         {page === 4 && quizStarted && (
           <div className="w-full max-w-2xl bg-[#FDFCDC] rounded-2xl shadow-lg p-8 flex flex-col items-center relative min-h-[400px]">
             <h3 className="text-2xl font-bold text-[#0081A7] mb-6">Quiz: Match the English to Chinese</h3>
@@ -335,7 +335,7 @@ export default function Home() {
                       <div className="flex flex-col items-start min-w-[100px]">
                         <span className="text-2xl text-[#0081A7] font-bold">{word.chinese}</span>
                         <span className="text-[#00AFB9] text-base">{word.pinyin}</span>
-                      </div>
+        </div>
                       {/* Feedback icon */}
                       {(quizFeedback[idx] === 'correct' || matchedEng) && <span className="ml-2 text-green-600 text-2xl">✓</span>}
                       {quizFeedback[idx] === 'incorrect' && <span className="ml-2 text-red-500 text-2xl">✗</span>}
@@ -395,10 +395,10 @@ export default function Home() {
                 >
                   Next game
                 </button>
-              </div>
-            )}
-          </div>
-        )}
+                      </div>
+                    )}
+                  </div>
+          )}
       </div>
     </div>
   );

@@ -13,6 +13,18 @@ interface VocabWord {
   english: string;
 }
 
+interface GrammarExample {
+  chinese: string;
+  pinyin: string;
+  english: string;
+}
+
+interface GrammarConcept {
+  name: string;
+  description: string;
+  examples: GrammarExample[];
+}
+
 // Simulate AI vocabulary generation
 async function generateVocab(skillLevel: SkillLevel, topic: string): Promise<VocabWord[]> {
   // For now, return 4 topic-related and 6 generic words, shuffled
@@ -81,6 +93,12 @@ export default function Home() {
     total: number;
     percentage: number;
   } | null>(null);
+
+  // Grammar lesson state
+  const [grammarConcept, setGrammarConcept] = useState<GrammarConcept | null>(null);
+  const [grammarRevealed, setGrammarRevealed] = useState<boolean[]>([]);
+  const [grammarShowAll, setGrammarShowAll] = useState(false);
+  const [grammarLoading, setGrammarLoading] = useState(false);
 
   // Handler for HSK selection
   const handleContinue = () => {
@@ -281,6 +299,102 @@ export default function Home() {
     setPage(3); // Go back to vocabulary lesson
   };
 
+  // Generate grammar concept based on HSK level
+  const generateGrammarConcept = (skillLevel: SkillLevel, topic: string): GrammarConcept => {
+    const concepts = {
+      HSK1: {
+        name: "Basic Subject-Verb-Object",
+        description: "Subject + Verb + Object",
+        examples: [
+          { chinese: "我喜欢猫", pinyin: "Wǒ xǐhuān māo", english: "I like cats" },
+          { chinese: "他学习中文", pinyin: "Tā xuéxí zhōngwén", english: "He studies Chinese" },
+          { chinese: "她吃苹果", pinyin: "Tā chī píngguǒ", english: "She eats apples" },
+          { chinese: "我们看电影", pinyin: "Wǒmen kàn diànyǐng", english: "We watch movies" },
+          { chinese: "你喝咖啡", pinyin: "Nǐ hē kāfēi", english: "You drink coffee" }
+        ]
+      },
+      HSK2: {
+        name: "Time + Subject + Verb + Object",
+        description: "Time + Subject + Verb + Object",
+        examples: [
+          { chinese: "今天我去学校", pinyin: "Jīntiān wǒ qù xuéxiào", english: "Today I go to school" },
+          { chinese: "明天他学习中文", pinyin: "Míngtiān tā xuéxí zhōngwén", english: "Tomorrow he studies Chinese" },
+          { chinese: "昨天她看电影", pinyin: "Zuótiān tā kàn diànyǐng", english: "Yesterday she watched a movie" },
+          { chinese: "现在你喝咖啡", pinyin: "Xiànzài nǐ hē kāfēi", english: "Now you drink coffee" },
+          { chinese: "晚上我们吃饭", pinyin: "Wǎnshang wǒmen chīfàn", english: "In the evening we eat dinner" }
+        ]
+      },
+      HSK3: {
+        name: "Subject + 不/没 + Verb + Object",
+        description: "Subject + 不/没 (bù/méi) + Verb + Object",
+        examples: [
+          { chinese: "我不喜欢狗", pinyin: "Wǒ bù xǐhuān gǒu", english: "I don't like dogs" },
+          { chinese: "他没学习中文", pinyin: "Tā méi xuéxí zhōngwén", english: "He didn't study Chinese" },
+          { chinese: "她不看电影", pinyin: "Tā bù kàn diànyǐng", english: "She doesn't watch movies" },
+          { chinese: "你不喝咖啡", pinyin: "Nǐ bù hē kāfēi", english: "You don't drink coffee" },
+          { chinese: "我们没吃饭", pinyin: "Wǒmen méi chīfàn", english: "We didn't eat dinner" }
+        ]
+      },
+      HSK4: {
+        name: "Subject + 一 + Measure Word + Object + 也/都 + 不/没 + Verb",
+        description: "Subject + 一(yī) + Measure Word + Object + 也/都(yě/dōu) + 不/没(bù/méi) + Verb",
+        examples: [
+          { chinese: "我一个苹果也不吃", pinyin: "Wǒ yī gè píngguǒ yě bù chī", english: "I don't eat even one apple" },
+          { chinese: "他一本中文书都没读", pinyin: "Tā yī běn zhōngwén shū dōu méi dú", english: "He didn't read even one Chinese book" },
+          { chinese: "她一部电影都不看", pinyin: "Tā yī bù diànyǐng dōu bù kàn", english: "She doesn't watch even one movie" },
+          { chinese: "你一杯咖啡也不喝", pinyin: "Nǐ yī bēi kāfēi yě bù hē", english: "You don't drink even one cup of coffee" },
+          { chinese: "我们一顿饭都没吃", pinyin: "Wǒmen yī dùn fàn dōu méi chī", english: "We didn't eat even one meal" }
+        ]
+      },
+      HSK5: {
+        name: "Subject + 把 + Object + Verb + 了",
+        description: "Subject + 把(bǎ) + Object + Verb + 了(le)",
+        examples: [
+          { chinese: "我把苹果吃了", pinyin: "Wǒ bǎ píngguǒ chī le", english: "I ate the apple" },
+          { chinese: "他把中文书读了", pinyin: "Tā bǎ zhōngwén shū dú le", english: "He read the Chinese book" },
+          { chinese: "她把电影看了", pinyin: "Tā bǎ diànyǐng kàn le", english: "She watched the movie" },
+          { chinese: "你把咖啡喝了", pinyin: "Nǐ bǎ kāfēi hē le", english: "You drank the coffee" },
+          { chinese: "我们把饭吃了", pinyin: "Wǒmen bǎ fàn chī le", english: "We ate the meal" }
+        ]
+      },
+      HSK6: {
+        name: "Subject + 被 + Object + Verb + 了",
+        description: "Subject + 被(bèi) + Object + Verb + 了(le)",
+        examples: [
+          { chinese: "苹果被我吃了", pinyin: "Píngguǒ bèi wǒ chī le", english: "The apple was eaten by me" },
+          { chinese: "中文书被他读了", pinyin: "Zhōngwén shū bèi tā dú le", english: "The Chinese book was read by him" },
+          { chinese: "电影被她看了", pinyin: "Diànyǐng bèi tā kàn le", english: "The movie was watched by her" },
+          { chinese: "咖啡被你喝了", pinyin: "Kāfēi bèi nǐ hē le", english: "The coffee was drunk by you" },
+          { chinese: "饭被我们吃了", pinyin: "Fàn bèi wǒmen chī le", english: "The meal was eaten by us" }
+        ]
+      }
+    };
+
+    return concepts[skillLevel] || concepts.HSK1;
+  };
+
+  // Start grammar lesson
+  const handleStartGrammarLesson = async () => {
+    setGrammarLoading(true);
+    const concept = generateGrammarConcept(skillLevel, subject);
+    setGrammarConcept(concept);
+    setGrammarRevealed(Array(concept.examples.length).fill(false));
+    setGrammarShowAll(false);
+    setGrammarLoading(false);
+    setPage(7);
+  };
+
+  // Reveal a single grammar example
+  const handleGrammarReveal = (idx: number) => {
+    setGrammarRevealed(prev => prev.map((r, i) => (i === idx ? true : r)));
+  };
+
+  // Reveal all grammar examples
+  const handleGrammarShowAll = () => {
+    setGrammarShowAll(true);
+    setGrammarRevealed(Array(grammarConcept!.examples.length).fill(true));
+  };
+
   // Render header and subheader based on current page
   const renderHeader = () => {
     if (page === 1) {
@@ -313,6 +427,13 @@ export default function Home() {
       return (
         <>
           <h1 className="text-4xl font-bold text-[#0081A7] mb-4 mt-8">Exercise #2</h1>
+        </>
+      );
+    } else if (page === 7) {
+      return (
+        <>
+          <h1 className="text-4xl font-bold text-[#0081A7] mb-4 mt-8">Lesson 2: Grammar</h1>
+          <h2 className="text-lg text-[#00AFB9] mb-10 font-medium">Now, let&apos;s work on some full sentences</h2>
         </>
       );
     } else {
@@ -614,7 +735,7 @@ export default function Home() {
                   <div className="text-2xl font-bold text-[#0081A7] mb-6">Good job!</div>
                   <button
                     className="px-8 py-3 bg-[#00AFB9] text-white font-semibold rounded-xl hover:bg-[#0081A7] transition-all duration-200"
-                    onClick={() => setPage(1)}
+                    onClick={handleStartGrammarLesson}
                   >
                     Next Lesson
                   </button>
@@ -655,6 +776,69 @@ export default function Home() {
                 </div>
               )}
             </div>
+          </div>
+        )}
+        {page === 7 && grammarConcept && (
+          <div className="w-full max-w-2xl bg-[#FDFCDC] rounded-2xl shadow-lg p-8 flex flex-col items-center relative min-h-[400px]">
+            <h3 className="text-2xl font-bold text-[#0081A7] mb-6">New Grammar Concept</h3>
+            {grammarLoading ? (
+              <div className="text-[#0081A7] text-lg">Loading grammar concept...</div>
+            ) : (
+              <>
+                <div className="w-full mb-8">
+                  <div className="text-lg font-semibold text-[#0081A7] mb-2">{grammarConcept.name}</div>
+                  <div className="text-base text-[#00AFB9]">{grammarConcept.description}</div>
+                </div>
+                
+                <div className="flex flex-col gap-4 w-full">
+                  {grammarConcept.examples.map((example, idx) => (
+                    <div key={idx} className="flex items-center gap-6 w-full">
+                      <div className="flex flex-col items-start min-w-[200px]">
+                        <span className="text-xl text-[#0081A7] font-bold">{example.chinese}</span>
+                        <span className="text-[#00AFB9] text-sm">{example.pinyin}</span>
+                      </div>
+                      <button
+                        type="button"
+                        className="ml-4 px-6 py-2 rounded-lg bg-[#FED9B7] text-[#F07167] font-semibold text-base focus:outline-none focus:ring-2 focus:ring-[#F07167] transition-all duration-200"
+                        style={{ minWidth: 150 }}
+                        onClick={() => handleGrammarReveal(idx)}
+                        disabled={grammarRevealed[idx] || grammarShowAll}
+                      >
+                        <span
+                          style={{
+                            filter: grammarRevealed[idx] || grammarShowAll ? 'none' : 'blur(6px)',
+                            transition: 'filter 0.2s',
+                            cursor: grammarRevealed[idx] || grammarShowAll ? 'default' : 'pointer',
+                            userSelect: 'none',
+                          }}
+                        >
+                          {example.english}
+                        </span>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                
+                <div className="flex flex-col items-center w-full mt-8 gap-4">
+                  <button
+                    className={`px-8 py-3 bg-gradient-to-r from-[#FED9B7] to-[#F07167] text-[#0081A7] font-semibold rounded-xl transition-all duration-200 shadow-lg w-full max-w-xs
+                      ${!(grammarShowAll || grammarRevealed.every(Boolean)) ? 'hover:from-[#F07167] hover:to-[#FED9B7] hover:shadow-xl' : 'opacity-50 cursor-not-allowed'}`}
+                    onClick={handleGrammarShowAll}
+                    disabled={grammarShowAll || grammarRevealed.every(Boolean)}
+                  >
+                    Show All
+                  </button>
+                  <button
+                    className={`px-8 py-3 bg-[#00AFB9] text-white font-semibold rounded-xl shadow-lg w-full max-w-xs text-lg transition-all duration-200
+                      ${grammarRevealed.every(Boolean) ? 'hover:bg-[#0081A7]' : 'opacity-50 cursor-not-allowed'}`}
+                    onClick={() => setPage(1)}
+                    disabled={!grammarRevealed.every(Boolean)}
+                  >
+                    Continue
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>

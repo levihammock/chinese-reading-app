@@ -209,6 +209,9 @@ export default function Home() {
 
   // Lesson overview states
   const [currentLesson, setCurrentLesson] = useState<number | null>(null); // 1, 2, 3, or 4
+  
+  // Loading page state
+  const [showLoadingPage, setShowLoadingPage] = useState(false);
 
   // Debug useEffect
   React.useEffect(() => {
@@ -239,6 +242,7 @@ export default function Home() {
     e.preventDefault();
     console.log('Starting lesson generation...');
     setLessonLoading(true);
+    setShowLoadingPage(true); // Show loading page immediately
     
     try {
       // Generate complete lesson content
@@ -265,6 +269,7 @@ export default function Home() {
       
       console.log('Setting lessonLoading to false...');
       setLessonLoading(false);
+      setShowLoadingPage(false); // Hide loading page
       console.log('Lesson setup complete');
       
       // Navigate to lesson overview
@@ -273,6 +278,7 @@ export default function Home() {
     } catch (error) {
       console.error('Error in handleStartLesson:', error);
       setLessonLoading(false);
+      setShowLoadingPage(false); // Hide loading page even on error
       // Still navigate to lesson overview even if there's an error
       setCurrentLesson(1);
       setPage(101);
@@ -740,6 +746,7 @@ export default function Home() {
         // Generate lesson data if not available
         if (!lessonData) {
           console.log('Generating lesson data...');
+          setShowLoadingPage(true); // Show loading page
           const completeLesson = await generateCompleteLesson(skillLevel, subject);
           setLessonData(completeLesson);
           setVocab(completeLesson.vocabulary);
@@ -751,12 +758,14 @@ export default function Home() {
           setStoryData(completeLesson.story);
           setReadingRevealed(Array(completeLesson.story.story.length).fill(false));
           setReadingShowAll(false);
+          setShowLoadingPage(false); // Hide loading page
         }
         
         setCurrentLesson(lessonNumber);
         setPage(100 + lessonNumber); // Use page numbers 101, 102, 103, 104 for lesson overviews
       } catch (error) {
         console.error('Error in handleLessonNavigation:', error);
+        setShowLoadingPage(false); // Hide loading page on error
         setCurrentLesson(lessonNumber);
         setPage(100 + lessonNumber);
       }
@@ -769,6 +778,7 @@ export default function Home() {
         // Initialize required state for certain pages
         if (targetPage === 3 && !lessonData) {
           console.log('Generating lesson for page 3...');
+          setShowLoadingPage(true); // Show loading page
           const completeLesson = await generateCompleteLesson(skillLevel, subject);
           setLessonData(completeLesson);
           setVocab(completeLesson.vocabulary);
@@ -780,12 +790,14 @@ export default function Home() {
           setStoryData(completeLesson.story);
           setReadingRevealed(Array(completeLesson.story.story.length).fill(false));
           setReadingShowAll(false);
+          setShowLoadingPage(false); // Hide loading page
         }
         
         if (targetPage === 4) {
           // Initialize matching game state
           if (!lessonData) {
             console.log('Generating lesson for page 4...');
+            setShowLoadingPage(true); // Show loading page
             const completeLesson = await generateCompleteLesson(skillLevel, subject);
             setLessonData(completeLesson);
             setVocab(completeLesson.vocabulary);
@@ -795,6 +807,7 @@ export default function Home() {
             setQuizMatches(Array(completeLesson.vocabulary.length).fill(null));
             setQuizFeedback(Array(completeLesson.vocabulary.length).fill(null));
             setQuizComplete(false);
+            setShowLoadingPage(false); // Hide loading page
             setPage(targetPage);
             return;
           } else {
@@ -809,6 +822,7 @@ export default function Home() {
           // Initialize multiple choice quiz state
           if (!lessonData) {
             console.log('Generating lesson for page 5...');
+            setShowLoadingPage(true); // Show loading page
             const completeLesson = await generateCompleteLesson(skillLevel, subject);
             setLessonData(completeLesson);
             setVocab(completeLesson.vocabulary);
@@ -819,6 +833,7 @@ export default function Home() {
             setSelectedAnswers(Array(questions.length).fill(''));
             setCurrentQuestionIndex(0);
             setMultipleChoiceStarted(true);
+            setShowLoadingPage(false); // Hide loading page
             setPage(targetPage);
             return;
           } else {
@@ -832,17 +847,20 @@ export default function Home() {
         
         if (targetPage === 7 && !lessonData) {
           console.log('Generating lesson for page 7...');
+          setShowLoadingPage(true); // Show loading page
           const completeLesson = await generateCompleteLesson(skillLevel, subject);
           setLessonData(completeLesson);
           setGrammarConcept(completeLesson.grammar);
           setGrammarRevealed(Array(completeLesson.grammar.examples.length).fill(false));
           setGrammarShowAll(false);
+          setShowLoadingPage(false); // Hide loading page
         }
         
         if (targetPage === 8) {
           // Initialize grammar quiz state
           if (!lessonData) {
             console.log('Generating lesson for page 8...');
+            setShowLoadingPage(true); // Show loading page
             const completeLesson = await generateCompleteLesson(skillLevel, subject);
             setLessonData(completeLesson);
             setGrammarConcept(completeLesson.grammar);
@@ -852,6 +870,7 @@ export default function Home() {
             setGrammarQuizAnswers(Array(completeLesson.grammar.examples.length).fill(''));
             setCurrentGrammarQuestionIndex(0);
             setGrammarQuizResults(null);
+            setShowLoadingPage(false); // Hide loading page
             setPage(targetPage);
             return;
           } else {
@@ -864,12 +883,14 @@ export default function Home() {
         
         if (targetPage === 10 && !lessonData) {
           console.log('Generating lesson for page 10...');
+          setShowLoadingPage(true); // Show loading page
           const completeLesson = await generateCompleteLesson(skillLevel, subject);
           setLessonData(completeLesson);
           setStoryData(completeLesson.story);
           setReadingRevealed(Array(completeLesson.story.story.length).fill(false));
           setReadingShowAll(false);
           setReadingStarted(true);
+          setShowLoadingPage(false); // Hide loading page
           setPage(targetPage);
           return;
         }
@@ -1040,6 +1061,52 @@ export default function Home() {
               >
                 Reload Page
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showLoadingPage && (
+        <div className="fixed inset-0 bg-white flex items-center justify-center z-40">
+          <div className="text-center">
+            <div className="mb-8">
+              <h1 className="text-4xl font-bold text-[#0081A7] mb-4">KanKan</h1>
+              <h2 className="text-lg text-[#00AFB9] font-medium">Creating your personalized lesson...</h2>
+            </div>
+            
+            {/* Animated loading indicator */}
+            <div className="flex justify-center mb-8">
+              <div className="relative">
+                {/* Outer spinning circle */}
+                <div className="w-16 h-16 border-4 border-[#FED9B7] border-t-[#F07167] rounded-full animate-spin"></div>
+                
+                {/* Inner pulsing circle */}
+                <div className="absolute inset-2 bg-[#00AFB9] rounded-full animate-pulse"></div>
+                
+                {/* Center dot */}
+                <div className="absolute inset-6 bg-[#0081A7] rounded-full"></div>
+              </div>
+            </div>
+            
+            {/* Loading text with dots animation */}
+            <div className="text-[#0081A7] text-lg font-medium">
+              <span>Generating vocabulary</span>
+              <span className="animate-pulse">...</span>
+            </div>
+            
+            {/* Progress steps */}
+            <div className="mt-8 space-y-2 text-sm text-[#00AFB9]">
+              <div className="flex items-center justify-center space-x-2">
+                <div className="w-2 h-2 bg-[#00AFB9] rounded-full animate-pulse"></div>
+                <span>Creating grammar examples</span>
+              </div>
+              <div className="flex items-center justify-center space-x-2">
+                <div className="w-2 h-2 bg-[#FED9B7] rounded-full animate-pulse" style={{animationDelay: '0.5s'}}></div>
+                <span>Writing a story</span>
+              </div>
+              <div className="flex items-center justify-center space-x-2">
+                <div className="w-2 h-2 bg-[#F07167] rounded-full animate-pulse" style={{animationDelay: '1s'}}></div>
+                <span>Preparing exercises</span>
+              </div>
             </div>
           </div>
         </div>

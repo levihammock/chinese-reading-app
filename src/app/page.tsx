@@ -517,16 +517,85 @@ export default function Home() {
           setShowAll(false);
         });
       }
+      
+      if (targetPage === 4) {
+        // Initialize matching game state
+        if (vocab.length === 0) {
+          generateVocab(skillLevel, subject).then(words => {
+            setVocab(words);
+            setRevealed(Array(words.length).fill(false));
+            setShowAll(false);
+            setQuizStarted(true);
+            setQuizMatches(Array(words.length).fill(null));
+            setQuizFeedback(Array(words.length).fill(null));
+            setQuizComplete(false);
+            setPage(targetPage);
+          });
+          return;
+        } else {
+          setQuizStarted(true);
+          setQuizMatches(Array(vocab.length).fill(null));
+          setQuizFeedback(Array(vocab.length).fill(null));
+          setQuizComplete(false);
+        }
+      }
+      
+      if (targetPage === 5) {
+        // Initialize multiple choice quiz state
+        if (vocab.length === 0) {
+          generateVocab(skillLevel, subject).then(words => {
+            setVocab(words);
+            setRevealed(Array(words.length).fill(false));
+            setShowAll(false);
+            const questions = generateMultipleChoiceQuestions(words);
+            setQuizQuestions(questions);
+            setSelectedAnswers(Array(questions.length).fill(''));
+            setCurrentQuestionIndex(0);
+            setMultipleChoiceStarted(true);
+            setPage(targetPage);
+          });
+          return;
+        } else {
+          const questions = generateMultipleChoiceQuestions(vocab);
+          setQuizQuestions(questions);
+          setSelectedAnswers(Array(questions.length).fill(''));
+          setCurrentQuestionIndex(0);
+          setMultipleChoiceStarted(true);
+        }
+      }
+      
       if (targetPage === 7 && !grammarConcept) {
         const concept = generateGrammarConcept(skillLevel, subject);
         setGrammarConcept(concept);
         setGrammarRevealed(Array(concept.examples.length).fill(false));
         setGrammarShowAll(false);
       }
+      
+      if (targetPage === 8) {
+        // Initialize grammar quiz state
+        if (!grammarConcept) {
+          const concept = generateGrammarConcept(skillLevel, subject);
+          setGrammarConcept(concept);
+          setGrammarRevealed(Array(concept.examples.length).fill(false));
+          setGrammarShowAll(false);
+          setGrammarQuizStarted(true);
+          setGrammarQuizAnswers(Array(concept.examples.length).fill(''));
+          setCurrentGrammarQuestionIndex(0);
+          setGrammarQuizResults(null);
+          setPage(targetPage);
+          return;
+        } else {
+          setGrammarQuizStarted(true);
+          setGrammarQuizAnswers(Array(grammarConcept.examples.length).fill(''));
+          setCurrentGrammarQuestionIndex(0);
+          setGrammarQuizResults(null);
+        }
+      }
+      
       setPage(targetPage);
     };
 
-    return (
+        return (
       <div className="fixed left-0 top-0 h-full w-64 bg-[#FDFCDC] shadow-lg border-r border-[#FED9B7] overflow-y-auto z-10">
         <div className="p-6">
           {/* Level and Topic */}
@@ -539,7 +608,7 @@ export default function Home() {
               >
                 Change Level
               </button>
-            </div>
+          </div>
             <div className="flex items-center justify-between">
               <span className="text-lg font-bold text-[#0081A7]">Topic: {subject || '—'}</span>
               <button
@@ -548,8 +617,8 @@ export default function Home() {
               >
                 Try new topic
               </button>
-            </div>
           </div>
+            </div>
 
           {/* Nested Navigation */}
           <div className="mt-8">
@@ -579,9 +648,9 @@ export default function Home() {
               </div>
             ))}
           </div>
-        </div>
-      </div>
-    );
+            </div>
+          </div>
+        );
   };
 
   // Render header and subheader based on current page
@@ -751,10 +820,10 @@ export default function Home() {
                   >
                     Continue
                   </button>
-                </div>
-              </>
-            )}
             </div>
+              </>
+          )}
+        </div>
           )}
         {page === 4 && quizStarted && (
           <div className="w-full max-w-2xl bg-[#FDFCDC] rounded-2xl shadow-lg p-8 flex flex-col items-center relative min-h-[400px]">
@@ -829,30 +898,30 @@ export default function Home() {
                 <div className="text-5xl font-extrabold text-[#00AFB9] animate-bounce drop-shadow-lg" style={{textShadow:'0 2px 8px #fff'}}>
                   {congratsMsg}
                 </div>
-              </div>
-            )}
+                    </div>
+                  )}
             {quizComplete && !showCongrats && (
               <div className="mt-8 flex flex-col items-center">
                 <div className="text-2xl text-green-600 font-bold mb-4">🎉 Congrats! You matched all the words!</div>
-                <button
+                    <button
                   className="px-8 py-3 bg-gradient-to-r from-[#FED9B7] to-[#F07167] text-[#0081A7] font-semibold rounded-xl hover:from-[#F07167] hover:to-[#FED9B7] transition-all duration-200 shadow-lg hover:shadow-xl"
                   onClick={handleNextGame}
-                >
+                    >
                   Next game
-                </button>
+                    </button>
                       </div>
                     )}
                   </div>
           )}
         {page === 4 && quizStarted && (
           <div className="mt-6">
-            <button
+                    <button
               className="px-6 py-2 bg-[#FED9B7] text-[#0081A7] font-medium rounded-lg hover:bg-[#F07167] hover:text-white transition-all duration-200"
               onClick={handleStartMultipleChoice}
-            >
+                    >
               Skip to next exercise
-            </button>
-          </div>
+                    </button>
+                  </div>
         )}
         {page === 5 && multipleChoiceStarted && (
           <div className="w-full max-w-2xl bg-[#FDFCDC] rounded-2xl shadow-lg p-8 flex flex-col items-center relative min-h-[400px]">
@@ -862,7 +931,7 @@ export default function Home() {
                 <div className="text-center mb-8">
                   <div className="text-4xl text-[#0081A7] font-bold mb-4">
                     {quizQuestions[currentQuestionIndex].chinese}
-                  </div>
+                    </div>
                   <div className="text-sm text-[#00AFB9]">
                     Question {currentQuestionIndex + 1} of {quizQuestions.length}
                   </div>
@@ -919,15 +988,15 @@ export default function Home() {
                 </div>
               </div>
             )}
-          </div>
-        )}
+            </div>
+          )}
         {page === 6 && quizResults && (
           <div className="w-full max-w-2xl bg-[#FDFCDC] rounded-2xl shadow-lg p-8 flex flex-col items-center relative min-h-[400px]">
             <h3 className="text-2xl font-bold text-[#0081A7] mb-6">Quiz Results</h3>
             <div className="text-center mb-8">
               <div className="text-3xl font-bold text-[#0081A7] mb-4">
                 {quizResults.correct}/{quizResults.total} correct
-              </div>
+                </div>
               <div className="text-xl text-[#00AFB9] mb-6">
                 {quizResults.percentage}% accuracy
               </div>
@@ -936,12 +1005,12 @@ export default function Home() {
                 <div className="text-center">
                   <div className="text-6xl mb-4">🎉</div>
                   <div className="text-2xl font-bold text-[#0081A7] mb-6">Good job!</div>
-                  <button
+                    <button
                     className="px-8 py-3 bg-[#00AFB9] text-white font-semibold rounded-xl hover:bg-[#0081A7] transition-all duration-200"
                     onClick={handleStartGrammarLesson}
                   >
                     Next Lesson
-                  </button>
+                    </button>
                 </div>
               )}
               
@@ -955,7 +1024,7 @@ export default function Home() {
                   >
                     Try again
                   </button>
-                </div>
+              </div>
               )}
               
               {quizResults.percentage < 60 && (
@@ -963,13 +1032,13 @@ export default function Home() {
                   <div className="text-6xl mb-4">😢</div>
                   <div className="text-2xl font-bold text-[#0081A7] mb-6">Keep practicing!</div>
                   <div className="flex gap-4">
-                    <button
+                <button
                       className="px-6 py-3 bg-[#FED9B7] text-[#0081A7] font-semibold rounded-xl hover:bg-[#F07167] hover:text-white transition-all duration-200"
                       onClick={handleQuizRetry}
-                    >
+                >
                       Try again
-                    </button>
-                    <button
+                </button>
+                <button
                       className="px-6 py-3 bg-[#00AFB9] text-white font-semibold rounded-xl hover:bg-[#0081A7] transition-all duration-200"
                       onClick={handleReviewLesson}
                     >
@@ -1017,10 +1086,10 @@ export default function Home() {
                         >
                           {example.english}
                         </span>
-                      </button>
-                    </div>
+                </button>
+              </div>
                   ))}
-                </div>
+            </div>
                 
                 <div className="flex flex-col items-center w-full mt-8 gap-4">
                   <button
@@ -1106,23 +1175,23 @@ export default function Home() {
                       Submit Answers
                     </button>
                   )}
-                </div>
-              </div>
+                    </div>
+                    </div>
             ) : (
               <div className="text-[#0081A7] text-lg">Loading grammar quiz...</div>
             )}
-          </div>
-        )}
+                      </div>
+                    )}
         {page === 9 && grammarQuizResults && (
           <div className="w-full max-w-2xl bg-[#FDFCDC] rounded-2xl shadow-lg p-8 flex flex-col items-center relative min-h-[400px]">
             <h3 className="text-2xl font-bold text-[#0081A7] mb-6">Grammar Quiz Results</h3>
             <div className="text-center mb-8">
               <div className="text-3xl font-bold text-[#0081A7] mb-4">
                 {grammarQuizResults.correct}/{grammarQuizResults.total} correct
-              </div>
+                  </div>
               <div className="text-xl text-[#00AFB9] mb-6">
                 {grammarQuizResults.percentage}% accuracy
-              </div>
+                </div>
               
               {grammarQuizResults.percentage >= 80 && (
                 <div className="text-center">
@@ -1162,8 +1231,8 @@ export default function Home() {
                     >
                       Review lesson
                     </button>
-                  </div>
-                </div>
+        </div>
+      </div>
               )}
             </div>
           </div>

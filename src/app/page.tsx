@@ -222,11 +222,28 @@ export default function Home() {
   React.useEffect(() => {
     const handleError = (event: ErrorEvent) => {
       console.error('Global error caught:', event.error);
+      console.error('Error details:', {
+        message: event.error?.message,
+        stack: event.error?.stack,
+        filename: event.filename,
+        lineno: event.lineno,
+        colno: event.colno
+      });
+      setError('Something went wrong! Please try refreshing the page.');
+    };
+
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      console.error('Unhandled promise rejection:', event.reason);
       setError('Something went wrong! Please try refreshing the page.');
     };
 
     window.addEventListener('error', handleError);
-    return () => window.removeEventListener('error', handleError);
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+    
+    return () => {
+      window.removeEventListener('error', handleError);
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+    };
   }, []);
 
   // Handler for HSK selection
@@ -1645,30 +1662,58 @@ export default function Home() {
                 <div className="w-full mb-8">
                   <div className="text-sm text-[#00AFB9] font-medium mb-4">Story (Click words to reveal translations)</div>
                   <div className="flex flex-wrap gap-2 justify-center">
-                    {lessonData.story.story.map((word, idx) => {
-                      // Safety check for readingRevealed array
-                      const isRevealed = readingRevealed && readingRevealed[idx];
-                      return (
-                        <button
-                          key={idx}
-                          onClick={() => handleReadingReveal(idx)}
-                          className={`p-3 rounded-lg transition-all duration-200 text-center min-w-[80px] ${
-                            isRevealed || readingShowAll
-                              ? 'bg-[#00AFB9] text-white shadow-md'
-                              : 'bg-white text-[#0081A7] hover:bg-[#FED9B7] hover:text-[#F07167] border border-[#FED9B7]'
-                          }`}
-                          disabled={isRevealed || readingShowAll}
-                        >
-                          <div className="text-xl font-bold mb-1">{word.chinese}</div>
-                          {(isRevealed || readingShowAll) && (
-                            <>
-                              <div className="text-sm opacity-90">{word.pinyin}</div>
-                              <div className="text-xs opacity-80">{word.english}</div>
-                            </>
-                          )}
-                        </button>
-                      );
-                    })}
+                    {(() => {
+                      try {
+                        console.log('Rendering story content');
+                        console.log('lessonData.story:', lessonData.story);
+                        console.log('lessonData.story.story:', lessonData.story.story);
+                        console.log('readingRevealed:', readingRevealed);
+                        
+                        if (!lessonData.story || !lessonData.story.story || !Array.isArray(lessonData.story.story)) {
+                          console.error('Invalid story data structure');
+                          return <div className="text-red-500">Error: Invalid story data</div>;
+                        }
+                        
+                        return lessonData.story.story.map((word, idx) => {
+                          try {
+                            // Safety check for readingRevealed array
+                            const isRevealed = readingRevealed && Array.isArray(readingRevealed) && readingRevealed[idx];
+                            
+                            if (!word || !word.chinese) {
+                              console.error('Invalid word data at index', idx, word);
+                              return null;
+                            }
+                            
+                            return (
+                              <button
+                                key={idx}
+                                onClick={() => handleReadingReveal(idx)}
+                                className={`p-3 rounded-lg transition-all duration-200 text-center min-w-[80px] ${
+                                  isRevealed || readingShowAll
+                                    ? 'bg-[#00AFB9] text-white shadow-md'
+                                    : 'bg-white text-[#0081A7] hover:bg-[#FED9B7] hover:text-[#F07167] border border-[#FED9B7]'
+                                }`}
+                                disabled={isRevealed || readingShowAll}
+                              >
+                                <div className="text-xl font-bold mb-1">{word.chinese}</div>
+                                {(isRevealed || readingShowAll) && (
+                                  <>
+                                    <div className="text-sm opacity-90">{word.pinyin}</div>
+                                    <div className="text-xs opacity-80">{word.english}</div>
+                                  </>
+                                )}
+                              </button>
+                            );
+                          } catch (wordError) {
+                            console.error('Error rendering word at index', idx, wordError);
+                            return null;
+                          }
+                        });
+                      } catch (storyError) {
+                        console.error('Error rendering story content:', storyError);
+                        return <div className="text-red-500">Error rendering story content</div>;
+                      }
+                    })()}
                   </div>
                 </div>
                 
@@ -1700,7 +1745,15 @@ export default function Home() {
         {page === 10 && (!lessonData || !readingStarted || !storyData) && (
           <div className="w-full max-w-4xl bg-[#FDFCDC] rounded-2xl shadow-lg p-8 flex flex-col items-center relative min-h-[400px]">
             <h3 className="text-2xl font-bold text-[#0081A7] mb-6">Read the Story</h3>
-            <div className="text-[#0081A7] text-lg">Loading reading lesson...</div>
+            <div className="text-[#0081A7] text-lg mb-4">Loading reading lesson...</div>
+            <div className="text-sm text-[#00AFB9] space-y-1">
+              <div>Debug info:</div>
+              <div>lessonData: {lessonData ? '✓' : '✗'}</div>
+              <div>readingStarted: {readingStarted ? '✓' : '✗'}</div>
+              <div>storyData: {storyData ? '✓' : '✗'}</div>
+              {lessonData && <div>story exists: {lessonData.story ? '✓' : '✗'}</div>}
+              {lessonData?.story && <div>story array length: {lessonData.story.story?.length || 'undefined'}</div>}
+            </div>
           </div>
         )}
         

@@ -25,6 +25,18 @@ interface GrammarConcept {
   examples: GrammarExample[];
 }
 
+interface AlignedWord {
+  chinese: string;
+  pinyin: string;
+  english: string;
+}
+
+interface StoryData {
+  story: AlignedWord[];
+  sentence: string;
+  isAIGenerated: boolean;
+}
+
 // Simulate AI vocabulary generation
 async function generateVocab(skillLevel: SkillLevel, topic: string): Promise<VocabWord[]> {
   // For now, return 4 topic-related and 6 generic words, shuffled
@@ -109,6 +121,13 @@ export default function Home() {
     total: number;
     percentage: number;
   } | null>(null);
+
+  // Reading lesson state
+  const [readingStarted, setReadingStarted] = useState(false);
+  const [storyData, setStoryData] = useState<StoryData | null>(null);
+  const [readingRevealed, setReadingRevealed] = useState<boolean[]>([]);
+  const [readingShowAll, setReadingShowAll] = useState(false);
+  const [readingLoading, setReadingLoading] = useState(false);
 
   // Handler for HSK selection
   const handleContinue = () => {
@@ -485,6 +504,62 @@ export default function Home() {
     setPage(7); // Go back to grammar lesson
   };
 
+  // Generate story using LLM
+  const generateStory = async (skillLevel: SkillLevel, subject: string): Promise<StoryData> => {
+    try {
+      const response = await fetch('/api/generate-story', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ skillLevel, subject }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate story');
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error generating story:', error);
+      // Fallback story
+      return {
+        story: [
+          { chinese: "我", pinyin: "wǒ", english: "I" },
+          { chinese: "喜欢", pinyin: "xǐhuān", english: "like" },
+          { chinese: "学习", pinyin: "xuéxí", english: "study" },
+          { chinese: "中文", pinyin: "zhōngwén", english: "Chinese" },
+        ],
+        sentence: "I like studying Chinese.",
+        isAIGenerated: false,
+      };
+    }
+  };
+
+  // Start reading lesson
+  const handleStartReadingLesson = async () => {
+    setReadingLoading(true);
+    const story = await generateStory(skillLevel, subject);
+    setStoryData(story);
+    setReadingRevealed(Array(story.story.length).fill(false));
+    setReadingShowAll(false);
+    setReadingStarted(true);
+    setReadingLoading(false);
+    setPage(10);
+  };
+
+  // Reveal a single word in reading
+  const handleReadingReveal = (idx: number) => {
+    setReadingRevealed(prev => prev.map((r, i) => (i === idx ? true : r)));
+  };
+
+  // Reveal all words in reading
+  const handleReadingShowAll = () => {
+    setReadingShowAll(true);
+    setReadingRevealed(Array(storyData!.story.length).fill(true));
+  };
+
   // Navigation menu component
   const NavigationMenu = () => {
     if (page === 1 || page === 2) return null; // Don't show on HSK selection and topic input pages
@@ -506,9 +581,14 @@ export default function Home() {
           { name: 'Exercise #1', page: 8 },
         ],
       },
+      {
+        name: 'Lesson 3: Reading',
+        page: 10,
+        children: [],
+      },
     ];
 
-    const handlePageNavigation = (targetPage: number) => {
+    const handlePageNavigation = async (targetPage: number) => {
       // Initialize required state for certain pages
       if (targetPage === 3 && vocab.length === 0) {
         generateVocab(skillLevel, subject).then(words => {
@@ -590,6 +670,16 @@ export default function Home() {
           setCurrentGrammarQuestionIndex(0);
           setGrammarQuizResults(null);
         }
+      }
+      
+      if (targetPage === 10 && !storyData) {
+        const story = await generateStory(skillLevel, subject);
+        setStoryData(story);
+        setReadingRevealed(Array(story.story.length).fill(false));
+        setReadingShowAll(false);
+        setReadingStarted(true);
+        setPage(targetPage);
+        return;
       }
       
       setPage(targetPage);
@@ -706,6 +796,13 @@ export default function Home() {
         <>
           <h1 className="text-4xl font-bold text-[#0081A7] mb-4 mt-8">Lesson 2: Grammar</h1>
           <h2 className="text-lg text-[#00AFB9] mb-10 font-medium">Now, let&apos;s work on some full sentences</h2>
+        </>
+      );
+    } else if (page === 10) {
+      return (
+        <>
+          <h1 className="text-4xl font-bold text-[#0081A7] mb-4 mt-8">Lesson 3: Reading</h1>
+          <h2 className="text-lg text-[#00AFB9] mb-10 font-medium">Let&apos;s read a story together</h2>
         </>
       );
     } else {
@@ -1206,7 +1303,7 @@ export default function Home() {
                     </button>
                     <button
                       className="px-6 py-3 bg-[#00AFB9] text-white font-semibold rounded-xl hover:bg-[#0081A7] transition-all duration-200"
-                      onClick={() => setPage(1)}
+                      onClick={handleStartReadingLesson}
                     >
                       Next Lesson
                     </button>
@@ -1235,6 +1332,69 @@ export default function Home() {
       </div>
               )}
             </div>
+          </div>
+        )}
+        {page === 10 && readingStarted && storyData && (
+          <div className="w-full max-w-4xl bg-[#FDFCDC] rounded-2xl shadow-lg p-8 flex flex-col items-center relative min-h-[400px]">
+            <h3 className="text-2xl font-bold text-[#0081A7] mb-6">Read the Story</h3>
+            {readingLoading ? (
+              <div className="text-[#0081A7] text-lg">Generating your story...</div>
+            ) : (
+              <>
+                {/* Full English translation */}
+                <div className="w-full mb-8 p-4 bg-white rounded-xl border-2 border-[#FED9B7]">
+                  <div className="text-sm text-[#00AFB9] font-medium mb-2">Full Translation</div>
+                  <div className="text-lg text-[#0081A7]">{storyData.sentence}</div>
+                </div>
+                
+                {/* Story content */}
+                <div className="w-full mb-8">
+                  <div className="text-sm text-[#00AFB9] font-medium mb-4">Story (Click words to reveal translations)</div>
+                  <div className="flex flex-wrap gap-2 justify-center">
+                    {storyData.story.map((word, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => handleReadingReveal(idx)}
+                        className={`p-3 rounded-lg transition-all duration-200 text-center min-w-[80px] ${
+                          readingRevealed[idx] || readingShowAll
+                            ? 'bg-[#00AFB9] text-white shadow-md'
+                            : 'bg-white text-[#0081A7] hover:bg-[#FED9B7] hover:text-[#F07167] border border-[#FED9B7]'
+                        }`}
+                        disabled={readingRevealed[idx] || readingShowAll}
+                      >
+                        <div className="text-xl font-bold mb-1">{word.chinese}</div>
+                        {(readingRevealed[idx] || readingShowAll) && (
+                          <>
+                            <div className="text-sm opacity-90">{word.pinyin}</div>
+                            <div className="text-xs opacity-80">{word.english}</div>
+                          </>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Controls */}
+                <div className="flex flex-col items-center w-full gap-4">
+                  <button
+                    className={`px-8 py-3 bg-gradient-to-r from-[#FED9B7] to-[#F07167] text-[#0081A7] font-semibold rounded-xl transition-all duration-200 shadow-lg w-full max-w-xs
+                      ${!(readingShowAll || readingRevealed.every(Boolean)) ? 'hover:from-[#F07167] hover:to-[#FED9B7] hover:shadow-xl' : 'opacity-50 cursor-not-allowed'}`}
+                    onClick={handleReadingShowAll}
+                    disabled={readingShowAll || readingRevealed.every(Boolean)}
+                  >
+                    Show All Translations
+                  </button>
+                  <button
+                    className={`px-8 py-3 bg-[#00AFB9] text-white font-semibold rounded-xl shadow-lg w-full max-w-xs text-lg transition-all duration-200
+                      ${readingRevealed.every(Boolean) ? 'hover:bg-[#0081A7]' : 'opacity-50 cursor-not-allowed'}`}
+                    onClick={() => setPage(1)}
+                    disabled={!readingRevealed.every(Boolean)}
+                  >
+                    Complete Lesson
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>

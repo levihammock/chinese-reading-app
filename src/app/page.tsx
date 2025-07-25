@@ -1555,7 +1555,7 @@ export default function Home() {
             </div>
           </div>
         )}
-        {page === 10 && lessonData && (
+        {page === 10 && lessonData && readingStarted && storyData && (
           <div className="w-full max-w-4xl bg-[#FDFCDC] rounded-2xl shadow-lg p-8 flex flex-col items-center relative min-h-[400px]">
             <h3 className="text-2xl font-bold text-[#0081A7] mb-6">Read the Story</h3>
             {lessonLoading ? (
@@ -1618,6 +1618,15 @@ export default function Home() {
             )}
           </div>
         )}
+        
+        {/* Fallback loading state for page 10 */}
+        {page === 10 && (!lessonData || !readingStarted || !storyData) && (
+          <div className="w-full max-w-4xl bg-[#FDFCDC] rounded-2xl shadow-lg p-8 flex flex-col items-center relative min-h-[400px]">
+            <h3 className="text-2xl font-bold text-[#0081A7] mb-6">Read the Story</h3>
+            <div className="text-[#0081A7] text-lg">Loading reading lesson...</div>
+          </div>
+        )}
+        
         {/* Lesson Overview Pages */}
         {page === 101 && currentLesson === 1 && (
           <div className="w-full max-w-4xl">
@@ -1698,6 +1707,12 @@ export default function Home() {
             <div className="grid gap-6">
               <button
                 onClick={() => {
+                  // Ensure reading state is properly initialized
+                  if (lessonData && lessonData.story) {
+                    setStoryData(lessonData.story);
+                    setReadingRevealed(Array(lessonData.story.story.length).fill(false));
+                    setReadingShowAll(false);
+                  }
                   setReadingStarted(true);
                   setPage(10);
                 }}

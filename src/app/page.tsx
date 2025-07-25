@@ -1697,7 +1697,7 @@ export default function Home() {
                     onClick={handleNotSure}
                     className="px-6 py-3 bg-gray-300 text-gray-600 font-semibold rounded-xl hover:bg-gray-400 transition-all duration-200"
                   >
-                    I'm not sure
+                    I&apos;m not sure
                   </button>
                 </div>
                 

@@ -485,6 +485,91 @@ export default function Home() {
     setPage(7); // Go back to grammar lesson
   };
 
+  // Navigation menu component
+  const NavigationMenu = () => {
+    if (page === 1 || page === 2) return null; // Don't show on HSK selection and topic input pages
+    
+    const lessonPages = [
+      { name: "Vocabulary Lesson", page: 3, description: "Learn new words" },
+      { name: "Exercise #1", page: 4, description: "Matching game" },
+      { name: "Exercise #2", page: 5, description: "Multiple choice quiz" },
+      { name: "Grammar Lesson", page: 7, description: "Learn grammar concepts" },
+      { name: "Grammar Quiz", page: 8, description: "Translation quiz" }
+    ];
+
+    const handlePageNavigation = (targetPage: number) => {
+      // Initialize required state for certain pages
+      if (targetPage === 3 && vocab.length === 0) {
+        // If going to vocabulary lesson but no vocab loaded, generate it
+        generateVocab(skillLevel, subject).then(words => {
+          setVocab(words);
+          setRevealed(Array(words.length).fill(false));
+          setShowAll(false);
+        });
+      }
+      if (targetPage === 7 && !grammarConcept) {
+        // If going to grammar lesson but no concept loaded, generate it
+        const concept = generateGrammarConcept(skillLevel, subject);
+        setGrammarConcept(concept);
+        setGrammarRevealed(Array(concept.examples.length).fill(false));
+        setGrammarShowAll(false);
+      }
+      setPage(targetPage);
+    };
+
+    return (
+      <div className="fixed left-0 top-0 h-full w-64 bg-[#FDFCDC] shadow-lg border-r border-[#FED9B7] overflow-y-auto z-10">
+        <div className="p-6">
+          {/* HSK Level and Topic */}
+          <div className="mb-6">
+            <div className="text-sm text-[#00AFB9] font-medium mb-2">Current Level</div>
+            <div className="text-lg font-bold text-[#0081A7] mb-1">{skillLevel}</div>
+            <button
+              onClick={() => setPage(1)}
+              className="text-sm text-[#F07167] hover:text-[#0081A7] transition-colors"
+            >
+              Change HSK level
+            </button>
+          </div>
+          
+          <div className="mb-6">
+            <div className="text-sm text-[#00AFB9] font-medium mb-2">Current Topic</div>
+            <div className="text-lg font-bold text-[#0081A7] mb-1">{subject}</div>
+            <button
+              onClick={() => setPage(2)}
+              className="text-sm text-[#F07167] hover:text-[#0081A7] transition-colors"
+            >
+              Change topic
+            </button>
+          </div>
+
+          {/* Navigation Menu */}
+          <div>
+            <div className="text-sm text-[#00AFB9] font-medium mb-3">Lesson Navigation</div>
+            <div className="space-y-2">
+              {lessonPages.map((lesson) => (
+                <button
+                  key={lesson.page}
+                  onClick={() => handlePageNavigation(lesson.page)}
+                  className={`w-full text-left p-3 rounded-lg transition-all duration-200 ${
+                    page === lesson.page
+                      ? 'bg-[#00AFB9] text-white shadow-md'
+                      : 'bg-white text-[#0081A7] hover:bg-[#FED9B7] hover:text-[#F07167] border border-[#FED9B7]'
+                  }`}
+                >
+                  <div className="font-semibold text-sm">{lesson.name}</div>
+                  <div className={`text-xs ${page === lesson.page ? 'text-white/80' : 'text-[#00AFB9]'}`}>
+                    {lesson.description}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // Render header and subheader based on current page
   const renderHeader = () => {
     if (page === 1) {
@@ -552,7 +637,7 @@ export default function Home() {
 
   return (
     <div className={`min-h-screen bg-white ${quicksand.className}`}>
-      <div className="flex flex-col items-center justify-center min-h-screen">
+      <div className={`flex flex-col items-center justify-center min-h-screen ${page >= 3 ? 'ml-64' : ''}`}>
         {renderHeader()}
         {page === 1 && (
           <div className="w-full max-w-md bg-[#FDFCDC] rounded-2xl shadow-lg p-8 flex flex-col items-center">
@@ -1070,6 +1155,7 @@ export default function Home() {
           </div>
         )}
       </div>
+      {NavigationMenu()}
     </div>
   );
 }

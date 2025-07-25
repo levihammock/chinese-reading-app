@@ -1,6 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
-import { cedictDictionary } from '@/data/cedict-dictionary-merged.json';
+import cedictDictionaryData from '@/data/cedict-dictionary-merged.json';
+
+// Type the dictionary data
+interface DictionaryEntry {
+  chinese: string;
+  pinyin: string;
+  english: string;
+  hskLevel?: number;
+}
+
+const cedictDictionary = cedictDictionaryData as DictionaryEntry[];
 
 // Helper function to extract JSON from text that might contain extra content
 const extractJSONFromText = (text: string) => {

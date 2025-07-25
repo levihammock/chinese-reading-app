@@ -1037,11 +1037,16 @@ export default function Home() {
                 Change Level
               </button>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-lg font-bold text-[#0081A7]">Topic: {subject || '—'}</span>
+            <div className="mb-2">
+              <span className="text-lg font-bold text-[#0081A7]">Topic:</span>
+              <div className="text-sm text-[#0081A7] mt-1 break-words">
+                {subject || '—'}
+              </div>
+            </div>
+            <div className="flex justify-end">
               <button
                 onClick={() => setPage(2)}
-                className="text-xs text-[#F07167] hover:text-[#0081A7] transition-colors ml-2"
+                className="text-xs text-[#F07167] hover:text-[#0081A7] transition-colors"
               >
                 Try new topic
               </button>
@@ -1296,14 +1301,20 @@ export default function Home() {
             onSubmit={handleStartLesson}
           >
             <label className="block text-lg font-semibold text-[#0081A7] mb-4">Choose a topic</label>
+            <div className="w-full relative">
               <input
-              ref={inputRef}
+                ref={inputRef}
                 type="text"
                 value={subject}
-              onChange={e => setSubject(e.target.value)}
+                onChange={e => setSubject(e.target.value)}
                 placeholder="e.g., animals, food, travel..."
-              className="w-full px-4 py-3 border border-[#FED9B7] rounded-xl focus:ring-2 focus:ring-[#FED9B7] focus:border-transparent transition-all duration-200 bg-white text-[#0081A7] font-medium mb-8"
+                maxLength={50}
+                className="w-full px-4 py-3 border border-[#FED9B7] rounded-xl focus:ring-2 focus:ring-[#FED9B7] focus:border-transparent transition-all duration-200 bg-white text-[#0081A7] font-medium mb-2"
               />
+              <div className="text-xs text-[#00AFB9] text-left">
+                {subject.length}/50 characters
+              </div>
+            </div>
             <button
               type="submit"
               className="w-full px-8 py-3 bg-gradient-to-r from-[#FED9B7] to-[#F07167] text-[#0081A7] font-semibold rounded-xl hover:from-[#F07167] hover:to-[#FED9B7] transition-all duration-200 shadow-lg hover:shadow-xl"

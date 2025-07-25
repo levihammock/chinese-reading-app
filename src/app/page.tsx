@@ -695,13 +695,19 @@ export default function Home() {
 
   // Reveal a single word in reading
   const handleReadingReveal = (idx: number) => {
-    setReadingRevealed(prev => prev.map((r, i) => (i === idx ? true : r)));
+    setReadingRevealed(prev => {
+      if (!prev || !Array.isArray(prev)) {
+        console.warn('readingRevealed is not properly initialized, creating new array');
+        return Array(storyData?.story?.length || 0).fill(false).map((_, i) => i === idx ? true : false);
+      }
+      return prev.map((r, i) => (i === idx ? true : r));
+    });
   };
 
   // Reveal all words in reading
   const handleReadingShowAll = () => {
     setReadingShowAll(true);
-    setReadingRevealed(Array(storyData!.story.length).fill(true));
+    setReadingRevealed(Array(storyData?.story?.length || 0).fill(true));
   };
 
   // Navigation menu component
@@ -1572,26 +1578,30 @@ export default function Home() {
                 <div className="w-full mb-8">
                   <div className="text-sm text-[#00AFB9] font-medium mb-4">Story (Click words to reveal translations)</div>
                   <div className="flex flex-wrap gap-2 justify-center">
-                    {lessonData.story.story.map((word, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => handleReadingReveal(idx)}
-                        className={`p-3 rounded-lg transition-all duration-200 text-center min-w-[80px] ${
-                          readingRevealed[idx] || readingShowAll
-                            ? 'bg-[#00AFB9] text-white shadow-md'
-                            : 'bg-white text-[#0081A7] hover:bg-[#FED9B7] hover:text-[#F07167] border border-[#FED9B7]'
-                        }`}
-                        disabled={readingRevealed[idx] || readingShowAll}
-                      >
-                        <div className="text-xl font-bold mb-1">{word.chinese}</div>
-                        {(readingRevealed[idx] || readingShowAll) && (
-                          <>
-                            <div className="text-sm opacity-90">{word.pinyin}</div>
-                            <div className="text-xs opacity-80">{word.english}</div>
-                          </>
-                        )}
-                      </button>
-                    ))}
+                    {lessonData.story.story.map((word, idx) => {
+                      // Safety check for readingRevealed array
+                      const isRevealed = readingRevealed && readingRevealed[idx];
+                      return (
+                        <button
+                          key={idx}
+                          onClick={() => handleReadingReveal(idx)}
+                          className={`p-3 rounded-lg transition-all duration-200 text-center min-w-[80px] ${
+                            isRevealed || readingShowAll
+                              ? 'bg-[#00AFB9] text-white shadow-md'
+                              : 'bg-white text-[#0081A7] hover:bg-[#FED9B7] hover:text-[#F07167] border border-[#FED9B7]'
+                          }`}
+                          disabled={isRevealed || readingShowAll}
+                        >
+                          <div className="text-xl font-bold mb-1">{word.chinese}</div>
+                          {(isRevealed || readingShowAll) && (
+                            <>
+                              <div className="text-sm opacity-90">{word.pinyin}</div>
+                              <div className="text-xs opacity-80">{word.english}</div>
+                            </>
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
                 
@@ -1599,17 +1609,17 @@ export default function Home() {
                 <div className="flex flex-col items-center w-full gap-4">
                   <button
                     className={`px-8 py-3 bg-gradient-to-r from-[#FED9B7] to-[#F07167] text-[#0081A7] font-semibold rounded-xl transition-all duration-200 shadow-lg w-full max-w-xs
-                      ${!(readingShowAll || readingRevealed.every(Boolean)) ? 'hover:from-[#F07167] hover:to-[#FED9B7] hover:shadow-xl' : 'opacity-50 cursor-not-allowed'}`}
+                      ${!(readingShowAll || (readingRevealed && readingRevealed.every(Boolean))) ? 'hover:from-[#F07167] hover:to-[#FED9B7] hover:shadow-xl' : 'opacity-50 cursor-not-allowed'}`}
                     onClick={handleReadingShowAll}
-                    disabled={readingShowAll || readingRevealed.every(Boolean)}
+                    disabled={readingShowAll || (readingRevealed && readingRevealed.every(Boolean))}
                   >
                     Show All Translations
                   </button>
                   <button
                     className={`px-8 py-3 bg-[#00AFB9] text-white font-semibold rounded-xl shadow-lg w-full max-w-xs text-lg transition-all duration-200
-                      ${readingRevealed.every(Boolean) ? 'hover:bg-[#0081A7]' : 'opacity-50 cursor-not-allowed'}`}
+                      ${readingRevealed && readingRevealed.every(Boolean) ? 'hover:bg-[#0081A7]' : 'opacity-50 cursor-not-allowed'}`}
                     onClick={() => setPage(1)}
-                    disabled={!readingRevealed.every(Boolean)}
+                    disabled={!readingRevealed || !readingRevealed.every(Boolean)}
                   >
                     Complete Lesson
                   </button>
@@ -1707,14 +1717,31 @@ export default function Home() {
             <div className="grid gap-6">
               <button
                 onClick={() => {
-                  // Ensure reading state is properly initialized
-                  if (lessonData && lessonData.story) {
-                    setStoryData(lessonData.story);
-                    setReadingRevealed(Array(lessonData.story.story.length).fill(false));
-                    setReadingShowAll(false);
+                  try {
+                    console.log('Clicking New short story button');
+                    console.log('lessonData:', lessonData);
+                    console.log('lessonData.story:', lessonData?.story);
+                    
+                    // Ensure reading state is properly initialized
+                    if (lessonData && lessonData.story) {
+                      console.log('Setting story data and reading state');
+                      setStoryData(lessonData.story);
+                      setReadingRevealed(Array(lessonData.story.story.length).fill(false));
+                      setReadingShowAll(false);
+                      setReadingStarted(true);
+                      setPage(10);
+                    } else {
+                      console.error('lessonData or lessonData.story is missing');
+                      // Fallback: try to navigate anyway
+                      setReadingStarted(true);
+                      setPage(10);
+                    }
+                  } catch (error) {
+                    console.error('Error in New short story button click:', error);
+                    // Fallback: try to navigate anyway
+                    setReadingStarted(true);
+                    setPage(10);
                   }
-                  setReadingStarted(true);
-                  setPage(10);
                 }}
                 className="w-full p-6 bg-[#FDFCDC] rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 border-2 border-[#FED9B7] hover:border-[#F07167]"
               >

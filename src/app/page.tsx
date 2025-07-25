@@ -489,18 +489,28 @@ export default function Home() {
   const NavigationMenu = () => {
     if (page === 1 || page === 2) return null; // Don't show on HSK selection and topic input pages
     
-    const lessonPages = [
-      { name: "Vocabulary Lesson", page: 3, description: "Learn new words" },
-      { name: "Exercise #1", page: 4, description: "Matching game" },
-      { name: "Exercise #2", page: 5, description: "Multiple choice quiz" },
-      { name: "Grammar Lesson", page: 7, description: "Learn grammar concepts" },
-      { name: "Grammar Quiz", page: 8, description: "Translation quiz" }
+    // Nested lesson structure
+    const menu = [
+      {
+        name: 'Lesson 1: Vocabulary',
+        page: 3,
+        children: [
+          { name: 'Vocabulary Exercise #1', page: 4 },
+          { name: 'Vocabulary Exercise #2', page: 5 },
+        ],
+      },
+      {
+        name: 'Lesson 2: Grammar',
+        page: 7,
+        children: [
+          { name: 'Exercise #1', page: 8 },
+        ],
+      },
     ];
 
     const handlePageNavigation = (targetPage: number) => {
       // Initialize required state for certain pages
       if (targetPage === 3 && vocab.length === 0) {
-        // If going to vocabulary lesson but no vocab loaded, generate it
         generateVocab(skillLevel, subject).then(words => {
           setVocab(words);
           setRevealed(Array(words.length).fill(false));
@@ -508,7 +518,6 @@ export default function Home() {
         });
       }
       if (targetPage === 7 && !grammarConcept) {
-        // If going to grammar lesson but no concept loaded, generate it
         const concept = generateGrammarConcept(skillLevel, subject);
         setGrammarConcept(concept);
         setGrammarRevealed(Array(concept.examples.length).fill(false));
@@ -520,50 +529,55 @@ export default function Home() {
     return (
       <div className="fixed left-0 top-0 h-full w-64 bg-[#FDFCDC] shadow-lg border-r border-[#FED9B7] overflow-y-auto z-10">
         <div className="p-6">
-          {/* HSK Level and Topic */}
-          <div className="mb-6">
-            <div className="text-sm text-[#00AFB9] font-medium mb-2">Current Level</div>
-            <div className="text-lg font-bold text-[#0081A7] mb-1">{skillLevel}</div>
-            <button
-              onClick={() => setPage(1)}
-              className="text-sm text-[#F07167] hover:text-[#0081A7] transition-colors"
-            >
-              Change HSK level
-            </button>
-          </div>
-          
-          <div className="mb-6">
-            <div className="text-sm text-[#00AFB9] font-medium mb-2">Current Topic</div>
-            <div className="text-lg font-bold text-[#0081A7] mb-1">{subject}</div>
-            <button
-              onClick={() => setPage(2)}
-              className="text-sm text-[#F07167] hover:text-[#0081A7] transition-colors"
-            >
-              Change topic
-            </button>
+          {/* Level and Topic */}
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-lg font-bold text-[#0081A7]">Level: {skillLevel}</span>
+              <button
+                onClick={() => setPage(1)}
+                className="text-xs text-[#F07167] hover:text-[#0081A7] transition-colors ml-2"
+              >
+                Change Level
+              </button>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-lg font-bold text-[#0081A7]">Topic: {subject || '—'}</span>
+              <button
+                onClick={() => setPage(2)}
+                className="text-xs text-[#F07167] hover:text-[#0081A7] transition-colors ml-2"
+              >
+                Try new topic
+              </button>
+            </div>
           </div>
 
-          {/* Navigation Menu */}
-          <div>
-            <div className="text-sm text-[#00AFB9] font-medium mb-3">Lesson Navigation</div>
-            <div className="space-y-2">
-              {lessonPages.map((lesson) => (
+          {/* Nested Navigation */}
+          <div className="mt-8">
+            {menu.map((lesson, i) => (
+              <div key={lesson.name} className="mb-2">
                 <button
-                  key={lesson.page}
                   onClick={() => handlePageNavigation(lesson.page)}
-                  className={`w-full text-left p-3 rounded-lg transition-all duration-200 ${
-                    page === lesson.page
-                      ? 'bg-[#00AFB9] text-white shadow-md'
-                      : 'bg-white text-[#0081A7] hover:bg-[#FED9B7] hover:text-[#F07167] border border-[#FED9B7]'
-                  }`}
+                  className={`w-full text-left p-3 rounded-lg transition-all duration-200 font-semibold text-sm mb-1
+                    ${page === lesson.page ? 'bg-[#00AFB9] text-white shadow-md' : 'bg-white text-[#0081A7] hover:bg-[#FED9B7] hover:text-[#F07167] border border-[#FED9B7]'}`}
                 >
-                  <div className="font-semibold text-sm">{lesson.name}</div>
-                  <div className={`text-xs ${page === lesson.page ? 'text-white/80' : 'text-[#00AFB9]'}`}>
-                    {lesson.description}
-                  </div>
+                  {lesson.name}
                 </button>
-              ))}
-            </div>
+                {lesson.children && (
+                  <div className="ml-4 mt-1 space-y-1">
+                    {lesson.children.map(child => (
+                      <button
+                        key={child.page}
+                        onClick={() => handlePageNavigation(child.page)}
+                        className={`w-full text-left p-2 rounded-lg transition-all duration-200 text-xs
+                          ${page === child.page ? 'bg-[#00AFB9] text-white shadow-md' : 'bg-white text-[#0081A7] hover:bg-[#FED9B7] hover:text-[#F07167] border border-[#FED9B7]'}`}
+                      >
+                        {child.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         </div>
       </div>

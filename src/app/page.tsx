@@ -1153,6 +1153,22 @@ export default function Home() {
     }
   };
 
+  // Handle "I'm not sure" button for vocabulary quiz
+  const handleVocabNotSure = () => {
+    // Mark current question as not sure (empty answer = incorrect)
+    const newAnswers = [...selectedAnswers];
+    newAnswers[currentQuestionIndex] = '';
+    setSelectedAnswers(newAnswers);
+    
+    // Move to next question
+    if (currentQuestionIndex < quizQuestions.length - 1) {
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
+    } else {
+      // If it's the last question, submit the quiz
+      handleSubmitQuiz();
+    }
+  };
+
   return (
     <div className={`min-h-screen bg-white ${quicksand.className}`}>
       {error && (
@@ -1508,39 +1524,48 @@ export default function Home() {
                   ))}
                 </div>
                 
-                <div className="flex justify-between items-center">
-                  {currentQuestionIndex > 0 && (
-                    <button
-                      className="px-6 py-3 bg-[#FED9B7] text-[#0081A7] font-semibold rounded-xl hover:bg-[#F07167] hover:text-white transition-all duration-200"
-                      onClick={handlePreviousQuestion}
-                    >
-                      Back
-                    </button>
-                  )}
-                  <div className="flex-1"></div>
-                  {currentQuestionIndex < quizQuestions.length - 1 ? (
-                    <button
-                      className={`px-6 py-3 font-semibold rounded-xl transition-all duration-200
-                        ${selectedAnswers[currentQuestionIndex] 
-                          ? 'bg-[#00AFB9] text-white hover:bg-[#0081A7]' 
-                          : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
-                      onClick={handleNextQuestion}
-                      disabled={!selectedAnswers[currentQuestionIndex]}
-                    >
-                      Next question
-                    </button>
-                  ) : (
-                    <button
-                      className={`px-6 py-3 font-semibold rounded-xl transition-all duration-200
-                        ${selectedAnswers.every(answer => answer !== '') 
-                          ? 'bg-[#00AFB9] text-white hover:bg-[#0081A7]' 
-                          : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
-                      onClick={handleSubmitQuiz}
-                      disabled={!selectedAnswers.every(answer => answer !== '')}
-                    >
-                      Submit Answers
-                    </button>
-                  )}
+                <div className="flex flex-col gap-4">
+                  <div className="flex justify-between items-center">
+                    {currentQuestionIndex > 0 && (
+                      <button
+                        className="px-6 py-3 bg-[#FED9B7] text-[#0081A7] font-semibold rounded-xl hover:bg-[#F07167] hover:text-white transition-all duration-200"
+                        onClick={handlePreviousQuestion}
+                      >
+                        Back
+                      </button>
+                    )}
+                    <div className="flex-1"></div>
+                    {currentQuestionIndex < quizQuestions.length - 1 ? (
+                      <button
+                        className={`px-6 py-3 font-semibold rounded-xl transition-all duration-200
+                          ${selectedAnswers[currentQuestionIndex] 
+                            ? 'bg-[#00AFB9] text-white hover:bg-[#0081A7]' 
+                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
+                        onClick={handleNextQuestion}
+                        disabled={!selectedAnswers[currentQuestionIndex]}
+                      >
+                        Next question
+                      </button>
+                    ) : (
+                      <button
+                        className={`px-6 py-3 font-semibold rounded-xl transition-all duration-200
+                          ${selectedAnswers.every(answer => answer !== '') 
+                            ? 'bg-[#00AFB9] text-white hover:bg-[#0081A7]' 
+                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
+                        onClick={handleSubmitQuiz}
+                        disabled={!selectedAnswers.every(answer => answer !== '')}
+                      >
+                        Submit Answers
+                      </button>
+                    )}
+                  </div>
+                  
+                  <button
+                    onClick={handleVocabNotSure}
+                    className="px-4 py-2 bg-gray-200 text-gray-500 font-medium rounded-lg hover:bg-gray-300 transition-all duration-200 text-sm self-center"
+                  >
+                    I&apos;m not sure
+                  </button>
                 </div>
               </div>
             )}

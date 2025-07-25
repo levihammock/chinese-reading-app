@@ -118,7 +118,7 @@ const generateCompleteLesson = async (skillLevel: SkillLevel, subject: string) =
       grammar: {
         name: "Basic Subject-Verb-Object",
         description: "Subject + Verb + Object",
-        explanation: "This is a basic grammar pattern where the subject, verb, and object are combined. It's a simple and effective way to express actions and relationships in Chinese.",
+        explanation: "This is the most basic way to make sentences in Chinese. You put the person doing the action first, then the action, then what they're doing it to.",
         examples: [
           { chinese: "我喜欢猫", pinyin: "Wǒ xǐhuān māo", english: "I like cats" },
           { chinese: "他学习中文", pinyin: "Tā xuéxí zhōngwén", english: "He studies Chinese" },
@@ -504,7 +504,7 @@ export default function Home() {
       HSK1: {
         name: "Basic Subject-Verb-Object",
         description: "Subject + Verb + Object",
-        explanation: "This is a basic grammar pattern where the subject, verb, and object are combined. It's a simple and effective way to express actions and relationships in Chinese.",
+        explanation: "This is the most basic way to make sentences in Chinese. You put the person doing the action first, then the action, then what they're doing it to.",
         examples: [
           { chinese: "我喜欢猫", pinyin: "Wǒ xǐhuān māo", english: "I like cats" },
           { chinese: "他学习中文", pinyin: "Tā xuéxí zhōngwén", english: "He studies Chinese" },
@@ -516,7 +516,7 @@ export default function Home() {
       HSK2: {
         name: "Time + Subject + Verb + Object",
         description: "Time + Subject + Verb + Object",
-        explanation: "This pattern includes a time expression, subject, verb, and object. It's used to describe actions that happen at a specific time.",
+        explanation: "When you want to say when something happens, put the time at the beginning of the sentence.",
         examples: [
           { chinese: "今天我去学校", pinyin: "Jīntiān wǒ qù xuéxiào", english: "Today I go to school" },
           { chinese: "明天他学习中文", pinyin: "Míngtiān tā xuéxí zhōngwén", english: "Tomorrow he studies Chinese" },
@@ -528,7 +528,7 @@ export default function Home() {
       HSK3: {
         name: "Subject + 不/没 + Verb + Object",
         description: "Subject + 不/没 (bù/méi) + Verb + Object",
-        explanation: "This pattern includes a subject, a negation, a verb, and an object. It's used to express actions that are not done or not present.",
+        explanation: "To say 'not' or 'don't', put 不 or 没 before the verb. Use 不 for general negatives and 没 for past negatives.",
         examples: [
           { chinese: "我不喜欢狗", pinyin: "Wǒ bù xǐhuān gǒu", english: "I don't like dogs" },
           { chinese: "他没学习中文", pinyin: "Tā méi xuéxí zhōngwén", english: "He didn't study Chinese" },
@@ -540,7 +540,7 @@ export default function Home() {
       HSK4: {
         name: "Subject + 一 + Measure Word + Object + 也/都 + 不/没 + Verb",
         description: "Subject + 一(yī) + Measure Word + Object + 也/都(yě/dōu) + 不/没(bù/méi) + Verb",
-        explanation: "This pattern includes a subject, a measure word, an object, a negation, and a verb. It's used to express actions that are not done or not present in a specific quantity.",
+        explanation: "This pattern emphasizes that you don't do something at all. It's like saying 'not even one' in English.",
         examples: [
           { chinese: "我一个苹果也不吃", pinyin: "Wǒ yī gè píngguǒ yě bù chī", english: "I don't eat even one apple" },
           { chinese: "他一本中文书都没读", pinyin: "Tā yī běn zhōngwén shū dōu méi dú", english: "He didn't read even one Chinese book" },
@@ -552,7 +552,7 @@ export default function Home() {
       HSK5: {
         name: "Subject + 把 + Object + Verb + 了",
         description: "Subject + 把(bǎ) + Object + Verb + 了(le)",
-        explanation: "This pattern includes a subject, an action verb, an object, and a result particle. It's used to express actions that are completed.",
+        explanation: "The 把 pattern shows that something is done to an object. It's like saying 'I did something to something' in English.",
         examples: [
           { chinese: "我把苹果吃了", pinyin: "Wǒ bǎ píngguǒ chī le", english: "I ate the apple" },
           { chinese: "他把中文书读了", pinyin: "Tā bǎ zhōngwén shū dú le", english: "He read the Chinese book" },
@@ -564,7 +564,7 @@ export default function Home() {
       HSK6: {
         name: "Subject + 被 + Object + Verb + 了",
         description: "Subject + 被(bèi) + Object + Verb + 了(le)",
-        explanation: "This pattern includes a subject, a passive verb, an object, and a result particle. It's used to express actions that are completed by someone else.",
+        explanation: "The 被 pattern is like passive voice in English. It shows that something was done to the subject by someone else.",
         examples: [
           { chinese: "苹果被我吃了", pinyin: "Píngguǒ bèi wǒ chī le", english: "The apple was eaten by me" },
           { chinese: "中文书被他读了", pinyin: "Zhōngwén shū bèi tā dú le", english: "The Chinese book was read by him" },
@@ -1548,8 +1548,8 @@ export default function Home() {
                       <div className="flex-1 flex justify-start">
                         <button
                           type="button"
-                          className="px-6 py-2 rounded-lg bg-[#FED9B7] text-[#F07167] font-semibold text-base focus:outline-none focus:ring-2 focus:ring-[#F07167] transition-all duration-200 flex items-center justify-center"
-                          style={{ width: 200, height: 60 }}
+                          className="px-6 py-3 rounded-lg bg-[#FED9B7] text-[#F07167] font-semibold text-base focus:outline-none focus:ring-2 focus:ring-[#F07167] transition-all duration-200 flex items-center justify-center text-center"
+                          style={{ minWidth: 200, minHeight: 60 }}
                           onClick={() => handleGrammarReveal(idx)}
                           disabled={grammarRevealed[idx] || grammarShowAll}
                         >
@@ -1559,6 +1559,8 @@ export default function Home() {
                               transition: 'filter 0.2s',
                               cursor: grammarRevealed[idx] || grammarShowAll ? 'default' : 'pointer',
                               userSelect: 'none',
+                              wordWrap: 'break-word',
+                              maxWidth: '100%',
                             }}
                           >
                             {example.english}

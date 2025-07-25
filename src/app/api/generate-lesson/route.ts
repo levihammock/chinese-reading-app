@@ -192,7 +192,7 @@ SPECIFIC REQUIREMENTS:
 - Create 5 example sentences that are relevant to "${subject}"
 - Each example should include chinese, pinyin, and english
 - Examples should demonstrate the grammar pattern clearly
-- Include a brief explanation (1-2 sentences) of how this grammar pattern is used and what it conveys
+- Include a brief explanation (1-2 sentences) in simple, conversational language explaining what this grammar pattern means and when to use it
 
 3. GRAMMAR QUIZ QUESTIONS:
 - Create 5 DIFFERENT example sentences that use the SAME grammar pattern as above

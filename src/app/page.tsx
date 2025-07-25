@@ -407,6 +407,7 @@ export default function Home() {
 
   // Start grammar quiz
   const handleStartGrammarQuiz = () => {
+    console.log('Starting grammar quiz, grammarConcept:', grammarConcept);
     setGrammarQuizStarted(true);
     setGrammarQuizAnswers(Array(grammarConcept!.examples.length).fill(''));
     setCurrentGrammarQuestionIndex(0);
@@ -947,7 +948,7 @@ export default function Home() {
         {page === 8 && grammarQuizStarted && (
           <div className="w-full max-w-2xl bg-[#FDFCDC] rounded-2xl shadow-lg p-8 flex flex-col items-center relative min-h-[400px]">
             <h3 className="text-2xl font-bold text-[#0081A7] mb-6">Grammar Quiz: Translate to English</h3>
-            {grammarConcept && (
+            {grammarConcept ? (
               <div className="w-full">
                 <div className="text-center mb-8">
                   <div className="text-2xl text-[#0081A7] font-bold mb-2">
@@ -1008,6 +1009,8 @@ export default function Home() {
                   )}
                 </div>
               </div>
+            ) : (
+              <div className="text-[#0081A7] text-lg">Loading grammar quiz...</div>
             )}
           </div>
         )}

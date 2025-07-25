@@ -70,7 +70,9 @@ async function generateVocab(skillLevel: SkillLevel, topic: string): Promise<Voc
 
 // Generate complete lesson using AI
 const generateCompleteLesson = async (skillLevel: SkillLevel, subject: string) => {
+  console.log('generateCompleteLesson called with:', { skillLevel, subject });
   try {
+    console.log('Making API call to /api/generate-lesson...');
     const response = await fetch('/api/generate-lesson', {
       method: 'POST',
       headers: {
@@ -79,15 +81,20 @@ const generateCompleteLesson = async (skillLevel: SkillLevel, subject: string) =
       body: JSON.stringify({ skillLevel, subject }),
     });
 
+    console.log('API response status:', response.status);
     if (!response.ok) {
-      throw new Error('Failed to generate lesson');
+      const errorText = await response.text();
+      console.error('API response not ok:', errorText);
+      throw new Error(`Failed to generate lesson: ${response.status} ${errorText}`);
     }
 
     const data = await response.json();
+    console.log('API response data:', data);
     return data;
   } catch (error) {
     console.error('Error generating lesson:', error);
     // Fallback lesson data
+    console.log('Using fallback lesson data');
     return {
       vocabulary: [
         { chinese: "我", pinyin: "wǒ", english: "I" },
@@ -193,6 +200,11 @@ export default function Home() {
   } | null>(null);
   const [lessonLoading, setLessonLoading] = useState(false);
 
+  // Debug useEffect
+  React.useEffect(() => {
+    console.log('State changed - lessonLoading:', lessonLoading, 'vocab length:', vocab.length, 'page:', page);
+  }, [lessonLoading, vocab.length, page]);
+
   // Handler for HSK selection
   const handleContinue = () => {
     setPage(2);
@@ -204,29 +216,40 @@ export default function Home() {
   // Handler for topic submission (start lesson)
   const handleStartLesson = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Starting lesson generation...');
     setLessonLoading(true);
     setPage(3);
     
-    // Generate complete lesson content
-    const completeLesson = await generateCompleteLesson(skillLevel, subject);
-    setLessonData(completeLesson);
-    
-    // Set up vocabulary lesson state
-    setVocab(completeLesson.vocabulary);
-    setRevealed(Array(completeLesson.vocabulary.length).fill(false));
-    setShowAll(false);
-    
-    // Set up grammar lesson state
-    setGrammarConcept(completeLesson.grammar);
-    setGrammarRevealed(Array(completeLesson.grammar.examples.length).fill(false));
-    setGrammarShowAll(false);
-    
-    // Set up reading lesson state
-    setStoryData(completeLesson.story);
-    setReadingRevealed(Array(completeLesson.story.story.length).fill(false));
-    setReadingShowAll(false);
-    
-    setLessonLoading(false);
+    try {
+      // Generate complete lesson content
+      console.log('Calling generateCompleteLesson...');
+      const completeLesson = await generateCompleteLesson(skillLevel, subject);
+      console.log('Lesson generated successfully:', completeLesson);
+      
+      setLessonData(completeLesson);
+      
+      // Set up vocabulary lesson state
+      setVocab(completeLesson.vocabulary);
+      setRevealed(Array(completeLesson.vocabulary.length).fill(false));
+      setShowAll(false);
+      
+      // Set up grammar lesson state
+      setGrammarConcept(completeLesson.grammar);
+      setGrammarRevealed(Array(completeLesson.grammar.examples.length).fill(false));
+      setGrammarShowAll(false);
+      
+      // Set up reading lesson state
+      setStoryData(completeLesson.story);
+      setReadingRevealed(Array(completeLesson.story.story.length).fill(false));
+      setReadingShowAll(false);
+      
+      console.log('Setting lessonLoading to false...');
+      setLessonLoading(false);
+      console.log('Lesson setup complete');
+    } catch (error) {
+      console.error('Error in handleStartLesson:', error);
+      setLessonLoading(false);
+    }
   };
 
   // Reveal a single word

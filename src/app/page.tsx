@@ -90,6 +90,12 @@ const generateCompleteLesson = async (skillLevel: SkillLevel, subject: string) =
 
     const data = await response.json();
     console.log('API response data:', data);
+    
+    // Validate the response structure
+    if (!data.vocabulary || !data.grammar || !data.story) {
+      throw new Error('Invalid lesson data structure received from API');
+    }
+    
     return data;
   } catch (error) {
     console.error('Error generating lesson:', error);
@@ -199,11 +205,26 @@ export default function Home() {
     story: StoryData;
   } | null>(null);
   const [lessonLoading, setLessonLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Lesson overview states
+  const [currentLesson, setCurrentLesson] = useState<number | null>(null); // 1, 2, 3, or 4
 
   // Debug useEffect
   React.useEffect(() => {
     console.log('State changed - lessonLoading:', lessonLoading, 'vocab length:', vocab.length, 'page:', page);
   }, [lessonLoading, vocab.length, page]);
+
+  // Error boundary effect
+  React.useEffect(() => {
+    const handleError = (event: ErrorEvent) => {
+      console.error('Global error caught:', event.error);
+      setError('Something went wrong! Please try refreshing the page.');
+    };
+
+    window.addEventListener('error', handleError);
+    return () => window.removeEventListener('error', handleError);
+  }, []);
 
   // Handler for HSK selection
   const handleContinue = () => {
@@ -218,7 +239,6 @@ export default function Home() {
     e.preventDefault();
     console.log('Starting lesson generation...');
     setLessonLoading(true);
-    setPage(3);
     
     try {
       // Generate complete lesson content
@@ -246,9 +266,16 @@ export default function Home() {
       console.log('Setting lessonLoading to false...');
       setLessonLoading(false);
       console.log('Lesson setup complete');
+      
+      // Navigate to lesson overview
+      setCurrentLesson(1);
+      setPage(101);
     } catch (error) {
       console.error('Error in handleStartLesson:', error);
       setLessonLoading(false);
+      // Still navigate to lesson overview even if there's an error
+      setCurrentLesson(1);
+      setPage(101);
     }
   };
 
@@ -680,148 +707,188 @@ export default function Home() {
   // Navigation menu component
   const NavigationMenu = () => {
     if (page === 1 || page === 2) return null; // Don't show on HSK selection and topic input pages
-    
-    // Nested lesson structure
+    // Main lesson structure (no nested pages)
     const menu = [
       {
         name: 'Lesson 1: Vocabulary',
-        page: 3,
-        children: [
-          { name: 'Vocabulary Exercise #1', page: 4 },
-          { name: 'Vocabulary Exercise #2', page: 5 },
-        ],
+        lessonNumber: 1,
       },
       {
         name: 'Lesson 2: Grammar',
-        page: 7,
-        children: [
-          { name: 'Exercise #1', page: 8 },
-        ],
+        lessonNumber: 2,
       },
       {
         name: 'Lesson 3: Reading',
-        page: 10,
-        children: [],
+        lessonNumber: 3,
+      },
+      {
+        name: 'Lesson 4: Writing',
+        lessonNumber: 4,
       },
     ];
 
+    const handleLessonNavigation = async (lessonNumber: number) => {
+      try {
+        console.log('Navigating to lesson overview:', lessonNumber);
+        
+        // Generate lesson data if not available
+        if (!lessonData) {
+          console.log('Generating lesson data...');
+          const completeLesson = await generateCompleteLesson(skillLevel, subject);
+          setLessonData(completeLesson);
+          setVocab(completeLesson.vocabulary);
+          setRevealed(Array(completeLesson.vocabulary.length).fill(false));
+          setShowAll(false);
+          setGrammarConcept(completeLesson.grammar);
+          setGrammarRevealed(Array(completeLesson.grammar.examples.length).fill(false));
+          setGrammarShowAll(false);
+          setStoryData(completeLesson.story);
+          setReadingRevealed(Array(completeLesson.story.story.length).fill(false));
+          setReadingShowAll(false);
+        }
+        
+        setCurrentLesson(lessonNumber);
+        setPage(100 + lessonNumber); // Use page numbers 101, 102, 103, 104 for lesson overviews
+      } catch (error) {
+        console.error('Error in handleLessonNavigation:', error);
+        setCurrentLesson(lessonNumber);
+        setPage(100 + lessonNumber);
+      }
+    };
+
     const handlePageNavigation = async (targetPage: number) => {
-      // Initialize required state for certain pages
-      if (targetPage === 3 && !lessonData) {
-        const completeLesson = await generateCompleteLesson(skillLevel, subject);
-        setLessonData(completeLesson);
-        setVocab(completeLesson.vocabulary);
-        setRevealed(Array(completeLesson.vocabulary.length).fill(false));
-        setShowAll(false);
-        setGrammarConcept(completeLesson.grammar);
-        setGrammarRevealed(Array(completeLesson.grammar.examples.length).fill(false));
-        setGrammarShowAll(false);
-        setStoryData(completeLesson.story);
-        setReadingRevealed(Array(completeLesson.story.story.length).fill(false));
-        setReadingShowAll(false);
-      }
-      
-      if (targetPage === 4) {
-        // Initialize matching game state
-        if (!lessonData) {
+      try {
+        console.log('Navigating to page:', targetPage);
+        
+        // Initialize required state for certain pages
+        if (targetPage === 3 && !lessonData) {
+          console.log('Generating lesson for page 3...');
           const completeLesson = await generateCompleteLesson(skillLevel, subject);
           setLessonData(completeLesson);
           setVocab(completeLesson.vocabulary);
           setRevealed(Array(completeLesson.vocabulary.length).fill(false));
           setShowAll(false);
-          setQuizStarted(true);
-          setQuizMatches(Array(completeLesson.vocabulary.length).fill(null));
-          setQuizFeedback(Array(completeLesson.vocabulary.length).fill(null));
-          setQuizComplete(false);
-          setPage(targetPage);
-          return;
-        } else {
-          setQuizStarted(true);
-          setQuizMatches(Array(lessonData.vocabulary.length).fill(null));
-          setQuizFeedback(Array(lessonData.vocabulary.length).fill(null));
-          setQuizComplete(false);
+          setGrammarConcept(completeLesson.grammar);
+          setGrammarRevealed(Array(completeLesson.grammar.examples.length).fill(false));
+          setGrammarShowAll(false);
+          setStoryData(completeLesson.story);
+          setReadingRevealed(Array(completeLesson.story.story.length).fill(false));
+          setReadingShowAll(false);
         }
-      }
-      
-      if (targetPage === 5) {
-        // Initialize multiple choice quiz state
-        if (!lessonData) {
-          const completeLesson = await generateCompleteLesson(skillLevel, subject);
-          setLessonData(completeLesson);
-          setVocab(completeLesson.vocabulary);
-          setRevealed(Array(completeLesson.vocabulary.length).fill(false));
-          setShowAll(false);
-          const questions = generateMultipleChoiceQuestions(completeLesson.vocabulary);
-          setQuizQuestions(questions);
-          setSelectedAnswers(Array(questions.length).fill(''));
-          setCurrentQuestionIndex(0);
-          setMultipleChoiceStarted(true);
-          setPage(targetPage);
-          return;
-        } else {
-          const questions = generateMultipleChoiceQuestions(lessonData.vocabulary);
-          setQuizQuestions(questions);
-          setSelectedAnswers(Array(questions.length).fill(''));
-          setCurrentQuestionIndex(0);
-          setMultipleChoiceStarted(true);
+        
+        if (targetPage === 4) {
+          // Initialize matching game state
+          if (!lessonData) {
+            console.log('Generating lesson for page 4...');
+            const completeLesson = await generateCompleteLesson(skillLevel, subject);
+            setLessonData(completeLesson);
+            setVocab(completeLesson.vocabulary);
+            setRevealed(Array(completeLesson.vocabulary.length).fill(false));
+            setShowAll(false);
+            setQuizStarted(true);
+            setQuizMatches(Array(completeLesson.vocabulary.length).fill(null));
+            setQuizFeedback(Array(completeLesson.vocabulary.length).fill(null));
+            setQuizComplete(false);
+            setPage(targetPage);
+            return;
+          } else {
+            setQuizStarted(true);
+            setQuizMatches(Array(lessonData.vocabulary.length).fill(null));
+            setQuizFeedback(Array(lessonData.vocabulary.length).fill(null));
+            setQuizComplete(false);
+          }
         }
-      }
-      
-      if (targetPage === 7 && !lessonData) {
-        const completeLesson = await generateCompleteLesson(skillLevel, subject);
-        setLessonData(completeLesson);
-        setGrammarConcept(completeLesson.grammar);
-        setGrammarRevealed(Array(completeLesson.grammar.examples.length).fill(false));
-        setGrammarShowAll(false);
-      }
-      
-      if (targetPage === 8) {
-        // Initialize grammar quiz state
-        if (!lessonData) {
+        
+        if (targetPage === 5) {
+          // Initialize multiple choice quiz state
+          if (!lessonData) {
+            console.log('Generating lesson for page 5...');
+            const completeLesson = await generateCompleteLesson(skillLevel, subject);
+            setLessonData(completeLesson);
+            setVocab(completeLesson.vocabulary);
+            setRevealed(Array(completeLesson.vocabulary.length).fill(false));
+            setShowAll(false);
+            const questions = generateMultipleChoiceQuestions(completeLesson.vocabulary);
+            setQuizQuestions(questions);
+            setSelectedAnswers(Array(questions.length).fill(''));
+            setCurrentQuestionIndex(0);
+            setMultipleChoiceStarted(true);
+            setPage(targetPage);
+            return;
+          } else {
+            const questions = generateMultipleChoiceQuestions(lessonData.vocabulary);
+            setQuizQuestions(questions);
+            setSelectedAnswers(Array(questions.length).fill(''));
+            setCurrentQuestionIndex(0);
+            setMultipleChoiceStarted(true);
+          }
+        }
+        
+        if (targetPage === 7 && !lessonData) {
+          console.log('Generating lesson for page 7...');
           const completeLesson = await generateCompleteLesson(skillLevel, subject);
           setLessonData(completeLesson);
           setGrammarConcept(completeLesson.grammar);
           setGrammarRevealed(Array(completeLesson.grammar.examples.length).fill(false));
           setGrammarShowAll(false);
-          setGrammarQuizStarted(true);
-          setGrammarQuizAnswers(Array(completeLesson.grammar.examples.length).fill(''));
-          setCurrentGrammarQuestionIndex(0);
-          setGrammarQuizResults(null);
+        }
+        
+        if (targetPage === 8) {
+          // Initialize grammar quiz state
+          if (!lessonData) {
+            console.log('Generating lesson for page 8...');
+            const completeLesson = await generateCompleteLesson(skillLevel, subject);
+            setLessonData(completeLesson);
+            setGrammarConcept(completeLesson.grammar);
+            setGrammarRevealed(Array(completeLesson.grammar.examples.length).fill(false));
+            setGrammarShowAll(false);
+            setGrammarQuizStarted(true);
+            setGrammarQuizAnswers(Array(completeLesson.grammar.examples.length).fill(''));
+            setCurrentGrammarQuestionIndex(0);
+            setGrammarQuizResults(null);
+            setPage(targetPage);
+            return;
+          } else {
+            setGrammarQuizStarted(true);
+            setGrammarQuizAnswers(Array(lessonData.grammar.examples.length).fill(''));
+            setCurrentGrammarQuestionIndex(0);
+            setGrammarQuizResults(null);
+          }
+        }
+        
+        if (targetPage === 10 && !lessonData) {
+          console.log('Generating lesson for page 10...');
+          const completeLesson = await generateCompleteLesson(skillLevel, subject);
+          setLessonData(completeLesson);
+          setStoryData(completeLesson.story);
+          setReadingRevealed(Array(completeLesson.story.story.length).fill(false));
+          setReadingShowAll(false);
+          setReadingStarted(true);
           setPage(targetPage);
           return;
-        } else {
-          setGrammarQuizStarted(true);
-          setGrammarQuizAnswers(Array(lessonData.grammar.examples.length).fill(''));
-          setCurrentGrammarQuestionIndex(0);
-          setGrammarQuizResults(null);
         }
-      }
-      
-      if (targetPage === 10 && !lessonData) {
-        const completeLesson = await generateCompleteLesson(skillLevel, subject);
-        setLessonData(completeLesson);
-        setStoryData(completeLesson.story);
-        setReadingRevealed(Array(completeLesson.story.story.length).fill(false));
-        setReadingShowAll(false);
-        setReadingStarted(true);
+        
+        if (targetPage === 10 && lessonData) {
+          // If lessonData exists but readingStarted is not set, set it
+          if (!readingStarted) {
+            console.log('Setting up reading state for page 10...');
+            setReadingStarted(true);
+            setStoryData(lessonData.story);
+            setReadingRevealed(Array(lessonData.story.story.length).fill(false));
+            setReadingShowAll(false);
+          }
+        }
+        
+        console.log('Setting page to:', targetPage);
         setPage(targetPage);
-        return;
+      } catch (error) {
+        console.error('Error in handlePageNavigation:', error);
+        // Fallback: try to set the page anyway
+        setPage(targetPage);
       }
-      
-      if (targetPage === 10 && lessonData) {
-        // If lessonData exists but readingStarted is not set, set it
-        if (!readingStarted) {
-          setReadingStarted(true);
-          setStoryData(lessonData.story);
-          setReadingRevealed(Array(lessonData.story.story.length).fill(false));
-          setReadingShowAll(false);
-        }
-      }
-      
-      setPage(targetPage);
     };
 
-        return (
+    return (
       <div className="fixed left-0 top-0 h-full w-64 bg-[#FDFCDC] shadow-lg border-r border-[#FED9B7] overflow-y-auto z-10">
         <div className="p-6">
           {/* Level and Topic */}
@@ -834,7 +901,7 @@ export default function Home() {
               >
                 Change Level
               </button>
-          </div>
+            </div>
             <div className="flex items-center justify-between">
               <span className="text-lg font-bold text-[#0081A7]">Topic: {subject || '—'}</span>
               <button
@@ -843,40 +910,26 @@ export default function Home() {
               >
                 Try new topic
               </button>
-          </div>
             </div>
+          </div>
 
-          {/* Nested Navigation */}
+          {/* Main Navigation */}
           <div className="mt-8">
             {menu.map((lesson, i) => (
               <div key={lesson.name} className="mb-2">
                 <button
-                  onClick={() => handlePageNavigation(lesson.page)}
+                  onClick={() => handleLessonNavigation(lesson.lessonNumber)}
                   className={`w-full text-left p-3 rounded-lg transition-all duration-200 font-semibold text-sm mb-1
-                    ${page === lesson.page ? 'bg-[#00AFB9] text-white shadow-md' : 'bg-white text-[#0081A7] hover:bg-[#FED9B7] hover:text-[#F07167] border border-[#FED9B7]'}`}
+                    ${page === 100 + lesson.lessonNumber ? 'bg-[#00AFB9] text-white shadow-md' : 'bg-white text-[#0081A7] hover:bg-[#FED9B7] hover:text-[#F07167] border border-[#FED9B7]'}`}
                 >
                   {lesson.name}
                 </button>
-                {lesson.children && (
-                  <div className="ml-4 mt-1 space-y-1">
-                    {lesson.children.map(child => (
-                      <button
-                        key={child.page}
-                        onClick={() => handlePageNavigation(child.page)}
-                        className={`w-full text-left p-2 rounded-lg transition-all duration-200 text-xs
-                          ${page === child.page ? 'bg-[#00AFB9] text-white shadow-md' : 'bg-white text-[#0081A7] hover:bg-[#FED9B7] hover:text-[#F07167] border border-[#FED9B7]'}`}
-                      >
-                        {child.name}
-                      </button>
-                    ))}
-                  </div>
-                )}
               </div>
             ))}
           </div>
-            </div>
-          </div>
-        );
+        </div>
+      </div>
+    );
   };
 
   // Render header and subheader based on current page
@@ -941,6 +994,15 @@ export default function Home() {
           <h2 className="text-lg text-[#00AFB9] mb-10 font-medium">Let&apos;s read a story together</h2>
         </>
       );
+    } else if (page >= 101 && page <= 104) {
+      const lessonNames = ['', 'Vocabulary', 'Grammar', 'Reading', 'Writing'];
+      const lessonNumber = page - 100;
+      return (
+        <>
+          <h1 className="text-4xl font-bold text-[#0081A7] mb-4 mt-8">Lesson {lessonNumber}: {lessonNames[lessonNumber]}</h1>
+          <h2 className="text-lg text-[#00AFB9] mb-10 font-medium">Choose an exercise to get started</h2>
+        </>
+      );
     } else {
       return (
         <>
@@ -953,6 +1015,29 @@ export default function Home() {
 
   return (
     <div className={`min-h-screen bg-white ${quicksand.className}`}>
+      {error && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-md mx-4">
+            <div className="text-red-500 text-4xl mb-4">⚠️</div>
+            <h2 className="text-xl font-bold text-gray-800 mb-4">Something went wrong!</h2>
+            <p className="text-gray-600 mb-6">{error}</p>
+            <div className="flex gap-4">
+              <button
+                onClick={() => setError(null)}
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+              >
+                Try Again
+              </button>
+              <button
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+              >
+                Reload Page
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className={`flex flex-col items-center justify-center min-h-screen ${page >= 3 ? 'ml-64' : ''}`}>
         {renderHeader()}
         {page === 1 && (
@@ -1531,6 +1616,118 @@ export default function Home() {
                 </div>
               </>
             )}
+          </div>
+        )}
+        {/* Lesson Overview Pages */}
+        {page === 101 && currentLesson === 1 && (
+          <div className="w-full max-w-4xl">
+            <h3 className="text-2xl font-bold text-[#0081A7] mb-8 text-center">Lesson 1: Vocabulary</h3>
+            <div className="grid gap-6">
+              <button
+                onClick={() => setPage(3)}
+                className="w-full p-6 bg-[#FDFCDC] rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 border-2 border-[#FED9B7] hover:border-[#F07167]"
+              >
+                <h4 className="text-xl font-bold text-[#0081A7] mb-2">New Vocabulary</h4>
+                <p className="text-[#00AFB9]">Learn new words related to your chosen topic</p>
+              </button>
+              
+              <button
+                onClick={() => {
+                  setQuizStarted(true);
+                  setPage(4);
+                  setQuizMatches(Array(lessonData!.vocabulary.length).fill(null));
+                  setQuizFeedback(Array(lessonData!.vocabulary.length).fill(null));
+                  setQuizComplete(false);
+                }}
+                className="w-full p-6 bg-[#FDFCDC] rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 border-2 border-[#FED9B7] hover:border-[#F07167]"
+              >
+                <h4 className="text-xl font-bold text-[#0081A7] mb-2">Vocabulary Exercise 1: Match the new words to the correct meanings</h4>
+                <p className="text-[#00AFB9]">Drag and drop to match Chinese words with their English translations</p>
+              </button>
+              
+              <button
+                onClick={() => {
+                  const questions = generateMultipleChoiceQuestions(lessonData!.vocabulary);
+                  setQuizQuestions(questions);
+                  setSelectedAnswers(Array(questions.length).fill(''));
+                  setCurrentQuestionIndex(0);
+                  setMultipleChoiceStarted(true);
+                  setPage(5);
+                }}
+                className="w-full p-6 bg-[#FDFCDC] rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 border-2 border-[#FED9B7] hover:border-[#F07167]"
+              >
+                <h4 className="text-xl font-bold text-[#0081A7] mb-2">Vocabulary Exercise 2: Quiz Me!</h4>
+                <p className="text-[#00AFB9]">Test your knowledge with multiple choice questions</p>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {page === 102 && currentLesson === 2 && (
+          <div className="w-full max-w-4xl">
+            <h3 className="text-2xl font-bold text-[#0081A7] mb-8 text-center">Lesson 2: Grammar</h3>
+            <div className="grid gap-6">
+              <button
+                onClick={() => setPage(7)}
+                className="w-full p-6 bg-[#FDFCDC] rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 border-2 border-[#FED9B7] hover:border-[#F07167]"
+              >
+                <h4 className="text-xl font-bold text-[#0081A7] mb-2">New Grammar Concept</h4>
+                <p className="text-[#00AFB9]">Learn a new grammar pattern with examples</p>
+              </button>
+              
+              <button
+                onClick={() => {
+                  setGrammarQuizStarted(true);
+                  setGrammarQuizAnswers(Array(lessonData!.grammar.examples.length).fill(''));
+                  setCurrentGrammarQuestionIndex(0);
+                  setGrammarQuizResults(null);
+                  setPage(8);
+                }}
+                className="w-full p-6 bg-[#FDFCDC] rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 border-2 border-[#FED9B7] hover:border-[#F07167]"
+              >
+                <h4 className="text-xl font-bold text-[#0081A7] mb-2">Grammar Exercise 1: Practice translating Chinese phrases to English</h4>
+                <p className="text-[#00AFB9]">Type English translations for Chinese sentences</p>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {page === 103 && currentLesson === 3 && (
+          <div className="w-full max-w-4xl">
+            <h3 className="text-2xl font-bold text-[#0081A7] mb-8 text-center">Lesson 3: Reading</h3>
+            <div className="grid gap-6">
+              <button
+                onClick={() => {
+                  setReadingStarted(true);
+                  setPage(10);
+                }}
+                className="w-full p-6 bg-[#FDFCDC] rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 border-2 border-[#FED9B7] hover:border-[#F07167]"
+              >
+                <h4 className="text-xl font-bold text-[#0081A7] mb-2">New short story</h4>
+                <p className="text-[#00AFB9]">Read an interactive story with click-to-reveal translations</p>
+              </button>
+              
+              <button
+                onClick={() => {
+                  // TODO: Add reading exercise functionality later
+                  alert('Reading Exercise 1: Quiz Me! - Coming soon!');
+                }}
+                className="w-full p-6 bg-[#FDFCDC] rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 border-2 border-[#FED9B7] hover:border-[#F07167] opacity-50 cursor-not-allowed"
+              >
+                <h4 className="text-xl font-bold text-[#0081A7] mb-2">Reading Exercise 1: Quiz Me!</h4>
+                <p className="text-[#00AFB9]">Test your reading comprehension (Coming soon)</p>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {page === 104 && currentLesson === 4 && (
+          <div className="w-full max-w-4xl">
+            <h3 className="text-2xl font-bold text-[#0081A7] mb-8 text-center">Lesson 4: Writing</h3>
+            <div className="text-center">
+              <p className="text-[#00AFB9] text-lg mb-4">Writing lessons coming soon!</p>
+              <p className="text-[#0081A7]">This lesson will include writing exercises and practice.</p>
+            </div>
           </div>
         )}
       </div>

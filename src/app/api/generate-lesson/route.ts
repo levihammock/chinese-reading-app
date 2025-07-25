@@ -159,6 +159,13 @@ OUTPUT FORMAT (respond with ONLY this JSON structure):
       }
     ]
   },
+  "grammarQuiz": [
+    {
+      "chinese": "他学习中文",
+      "pinyin": "Tā xuéxí zhōngwén",
+      "english": "He studies Chinese"
+    }
+  ],
   "story": {
     "aligned": [
       {
@@ -185,7 +192,13 @@ SPECIFIC REQUIREMENTS:
 - Each example should include chinese, pinyin, and english
 - Examples should demonstrate the grammar pattern clearly
 
-3. READING STORY:
+3. GRAMMAR QUIZ QUESTIONS:
+- Create 5 DIFFERENT example sentences that use the SAME grammar pattern as above
+- These should be separate from the grammar examples (different sentences)
+- Each quiz question should include chinese, pinyin, and english
+- All sentences should be relevant to "${subject}" and appropriate for ${skillLevel} level
+
+4. READING STORY:
 - Create a short story between ${config.charLimit} Chinese characters
 - The story MUST be about "${subject}" specifically
 - Use vocabulary from the provided word list
@@ -222,11 +235,13 @@ IMPORTANT RULES:
         const content = message.content[0];
         if (content.type === 'text') {
           const lessonData = extractJSONFromText(content.text);
-          if (lessonData && lessonData.vocabulary && lessonData.grammar && lessonData.story) {
+          if (lessonData && lessonData.vocabulary && lessonData.grammar && lessonData.grammarQuiz && lessonData.story) {
             // Validate the structure
             if (Array.isArray(lessonData.vocabulary) && 
                 lessonData.grammar.examples && 
                 Array.isArray(lessonData.grammar.examples) &&
+                lessonData.grammarQuiz &&
+                Array.isArray(lessonData.grammarQuiz) &&
                 lessonData.story.aligned && 
                 Array.isArray(lessonData.story.aligned) &&
                 lessonData.story.sentence) {
@@ -234,6 +249,7 @@ IMPORTANT RULES:
               return NextResponse.json({
                 vocabulary: lessonData.vocabulary,
                 grammar: lessonData.grammar,
+                grammarQuiz: lessonData.grammarQuiz,
                 story: lessonData.story,
                 isAIGenerated: true
               });
@@ -241,7 +257,7 @@ IMPORTANT RULES:
               lastError = 'AI response missing required arrays or fields.';
             }
           } else {
-            lastError = 'AI response missing vocabulary, grammar, or story sections.';
+            lastError = 'AI response missing vocabulary, grammar, grammarQuiz, or story sections.';
           }
         } else {
           lastError = 'Unexpected content type from AI.';

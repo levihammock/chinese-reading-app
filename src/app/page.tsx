@@ -125,6 +125,13 @@ const generateCompleteLesson = async (skillLevel: SkillLevel, subject: string) =
           { chinese: "你喝咖啡", pinyin: "Nǐ hē kāfēi", english: "You drink coffee" }
         ]
       },
+      grammarQuiz: [
+        { chinese: "我学习英语", pinyin: "Wǒ xuéxí yīngyǔ", english: "I study English" },
+        { chinese: "他喜欢狗", pinyin: "Tā xǐhuān gǒu", english: "He likes dogs" },
+        { chinese: "她看电影", pinyin: "Tā kàn diànyǐng", english: "She watches movies" },
+        { chinese: "我们吃午饭", pinyin: "Wǒmen chī wǔfàn", english: "We eat lunch" },
+        { chinese: "你读报纸", pinyin: "Nǐ dú bàozhǐ", english: "You read newspapers" }
+      ],
       story: {
         story: [
           { chinese: "我", pinyin: "wǒ", english: "I" },
@@ -184,6 +191,7 @@ export default function Home() {
 
   // Grammar quiz state
   const [grammarQuizStarted, setGrammarQuizStarted] = useState(false);
+  const [grammarQuizQuestions, setGrammarQuizQuestions] = useState<GrammarExample[]>([]);
   const [grammarQuizAnswers, setGrammarQuizAnswers] = useState<string[]>([]);
   const [currentGrammarQuestionIndex, setCurrentGrammarQuestionIndex] = useState(0);
   const [grammarQuizResults, setGrammarQuizResults] = useState<{
@@ -191,6 +199,13 @@ export default function Home() {
     total: number;
     percentage: number;
   } | null>(null);
+  const [grammarQuizEvaluations, setGrammarQuizEvaluations] = useState<Array<{
+    questionIndex: number;
+    isCorrect: boolean;
+    explanation: string;
+    correctAnswer: string;
+    studentAnswer: string;
+  }>>([]);
 
   // Reading lesson state
   const [readingStarted, setReadingStarted] = useState(false);
@@ -202,6 +217,7 @@ export default function Home() {
   const [lessonData, setLessonData] = useState<{
     vocabulary: VocabWord[];
     grammar: GrammarConcept;
+    grammarQuiz: GrammarExample[];
     story: StoryData;
   } | null>(null);
   const [lessonLoading, setLessonLoading] = useState(false);
@@ -585,11 +601,13 @@ export default function Home() {
 
   // Start grammar quiz
   const handleStartGrammarQuiz = () => {
-    console.log('Starting grammar quiz, grammarConcept:', grammarConcept);
+    console.log('Starting grammar quiz, grammarQuiz questions:', lessonData?.grammarQuiz);
     setGrammarQuizStarted(true);
-    setGrammarQuizAnswers(Array(grammarConcept!.examples.length).fill(''));
+    setGrammarQuizQuestions(lessonData?.grammarQuiz || []);
+    setGrammarQuizAnswers(Array(lessonData?.grammarQuiz?.length || 0).fill(''));
     setCurrentGrammarQuestionIndex(0);
     setGrammarQuizResults(null);
+    setGrammarQuizEvaluations([]);
     setPage(8);
   };
 
@@ -602,7 +620,7 @@ export default function Home() {
 
   // Navigate to next grammar question
   const handleNextGrammarQuestion = () => {
-    if (currentGrammarQuestionIndex < grammarConcept!.examples.length - 1) {
+    if (currentGrammarQuestionIndex < grammarQuizQuestions.length - 1) {
       setCurrentGrammarQuestionIndex(currentGrammarQuestionIndex + 1);
     }
   };
@@ -632,34 +650,71 @@ export default function Home() {
     return matchingWords.length >= correctWords.length * 0.8;
   };
 
-  // Submit grammar quiz
-  const handleSubmitGrammarQuiz = () => {
-    let correct = 0;
-    grammarConcept!.examples.forEach((example, index) => {
-      if (fuzzyMatch(grammarQuizAnswers[index], example.english)) {
-        correct++;
+  // Submit grammar quiz with AI evaluation
+  const handleSubmitGrammarQuiz = async () => {
+    try {
+      console.log('Submitting grammar quiz for AI evaluation...');
+      
+      const response = await fetch('/api/evaluate-grammar-quiz', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          questions: grammarQuizQuestions,
+          answers: grammarQuizAnswers,
+          skillLevel,
+          topic: subject
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to evaluate quiz');
       }
-    });
-    
-    const percentage = Math.round((correct / grammarConcept!.examples.length) * 100);
-    setGrammarQuizResults({ correct, total: grammarConcept!.examples.length, percentage });
-    setPage(9);
+
+      const evaluationData = await response.json();
+      console.log('Quiz evaluation received:', evaluationData);
+      
+      setGrammarQuizEvaluations(evaluationData.evaluations);
+      setGrammarQuizResults({
+        correct: evaluationData.summary.correctCount,
+        total: evaluationData.summary.totalCount,
+        percentage: evaluationData.summary.percentage
+      });
+      setPage(9);
+    } catch (error) {
+      console.error('Error evaluating grammar quiz:', error);
+      // Fallback to simple evaluation
+      let correct = 0;
+      grammarQuizQuestions.forEach((question, index) => {
+        if (fuzzyMatch(grammarQuizAnswers[index], question.english)) {
+          correct++;
+        }
+      });
+      
+      const percentage = Math.round((correct / grammarQuizQuestions.length) * 100);
+      setGrammarQuizResults({ correct, total: grammarQuizQuestions.length, percentage });
+      setPage(9);
+    }
   };
 
   // Retry grammar quiz
   const handleGrammarQuizRetry = () => {
-    setGrammarQuizAnswers(Array(grammarConcept!.examples.length).fill(''));
+    setGrammarQuizAnswers(Array(grammarQuizQuestions.length).fill(''));
     setCurrentGrammarQuestionIndex(0);
     setGrammarQuizResults(null);
+    setGrammarQuizEvaluations([]);
     setPage(8);
   };
 
   // Review grammar lesson
   const handleGrammarReviewLesson = () => {
     setGrammarQuizStarted(false);
+    setGrammarQuizQuestions([]);
     setGrammarQuizAnswers([]);
     setCurrentGrammarQuestionIndex(0);
     setGrammarQuizResults(null);
+    setGrammarQuizEvaluations([]);
     setPage(7); // Go back to grammar lesson
   };
 
@@ -883,18 +938,22 @@ export default function Home() {
             setGrammarConcept(completeLesson.grammar);
             setGrammarRevealed(Array(completeLesson.grammar.examples.length).fill(false));
             setGrammarShowAll(false);
+            setGrammarQuizQuestions(completeLesson.grammarQuiz);
             setGrammarQuizStarted(true);
-            setGrammarQuizAnswers(Array(completeLesson.grammar.examples.length).fill(''));
+            setGrammarQuizAnswers(Array(completeLesson.grammarQuiz.length).fill(''));
             setCurrentGrammarQuestionIndex(0);
             setGrammarQuizResults(null);
+            setGrammarQuizEvaluations([]);
             setShowLoadingPage(false); // Hide loading page
             setPage(targetPage);
             return;
           } else {
+            setGrammarQuizQuestions(lessonData.grammarQuiz);
             setGrammarQuizStarted(true);
-            setGrammarQuizAnswers(Array(lessonData.grammar.examples.length).fill(''));
+            setGrammarQuizAnswers(Array(lessonData.grammarQuiz.length).fill(''));
             setCurrentGrammarQuestionIndex(0);
             setGrammarQuizResults(null);
+            setGrammarQuizEvaluations([]);
           }
         }
         
@@ -1479,8 +1538,8 @@ export default function Home() {
                       </div>
                       <button
                         type="button"
-                        className="ml-4 px-6 py-2 rounded-lg bg-[#FED9B7] text-[#F07167] font-semibold text-base focus:outline-none focus:ring-2 focus:ring-[#F07167] transition-all duration-200"
-                        style={{ minWidth: 150 }}
+                        className="ml-4 px-6 py-2 rounded-lg bg-[#FED9B7] text-[#F07167] font-semibold text-base focus:outline-none focus:ring-2 focus:ring-[#F07167] transition-all duration-200 flex items-center justify-center"
+                        style={{ minWidth: 200, minHeight: 60 }}
                         onClick={() => handleGrammarReveal(idx)}
                         disabled={grammarRevealed[idx] || grammarShowAll}
                       >
@@ -1494,10 +1553,10 @@ export default function Home() {
                         >
                           {example.english}
                         </span>
-                </button>
-              </div>
+                      </button>
+                    </div>
                   ))}
-            </div>
+                </div>
                 
                 <div className="flex flex-col items-center w-full mt-8 gap-4">
                   <button
@@ -1524,17 +1583,17 @@ export default function Home() {
         {page === 8 && grammarQuizStarted && (
           <div className="w-full max-w-2xl bg-[#FDFCDC] rounded-2xl shadow-lg p-8 flex flex-col items-center relative min-h-[400px]">
             <h3 className="text-2xl font-bold text-[#0081A7] mb-6">Grammar Quiz: Translate to English</h3>
-            {grammarConcept ? (
+            {grammarQuizQuestions.length > 0 ? (
               <div className="w-full">
                 <div className="text-center mb-8">
                   <div className="text-2xl text-[#0081A7] font-bold mb-2">
-                    {grammarConcept.examples[currentGrammarQuestionIndex].chinese}
+                    {grammarQuizQuestions[currentGrammarQuestionIndex].chinese}
                   </div>
                   <div className="text-lg text-[#00AFB9] mb-4">
-                    {grammarConcept.examples[currentGrammarQuestionIndex].pinyin}
+                    {grammarQuizQuestions[currentGrammarQuestionIndex].pinyin}
                   </div>
                   <div className="text-sm text-[#00AFB9]">
-                    Question {currentGrammarQuestionIndex + 1} of {grammarConcept.examples.length}
+                    Question {currentGrammarQuestionIndex + 1} of {grammarQuizQuestions.length}
                   </div>
                 </div>
                 
@@ -1560,7 +1619,7 @@ export default function Home() {
                     </button>
                   )}
                   <div className="flex-1"></div>
-                  {currentGrammarQuestionIndex < grammarConcept.examples.length - 1 ? (
+                  {currentGrammarQuestionIndex < grammarQuizQuestions.length - 1 ? (
                     <button
                       className={`px-6 py-3 font-semibold rounded-xl transition-all duration-200
                         ${grammarQuizAnswers[currentGrammarQuestionIndex].trim() 
@@ -1583,23 +1642,62 @@ export default function Home() {
                       Submit Answers
                     </button>
                   )}
-                    </div>
-                    </div>
+                </div>
+              </div>
             ) : (
               <div className="text-[#0081A7] text-lg">Loading grammar quiz...</div>
             )}
-                      </div>
-                    )}
+          </div>
+        )}
         {page === 9 && grammarQuizResults && (
-          <div className="w-full max-w-2xl bg-[#FDFCDC] rounded-2xl shadow-lg p-8 flex flex-col items-center relative min-h-[400px]">
+          <div className="w-full max-w-4xl bg-[#FDFCDC] rounded-2xl shadow-lg p-8 flex flex-col items-center relative min-h-[400px]">
             <h3 className="text-2xl font-bold text-[#0081A7] mb-6">Grammar Quiz Results</h3>
             <div className="text-center mb-8">
               <div className="text-3xl font-bold text-[#0081A7] mb-4">
                 {grammarQuizResults.correct}/{grammarQuizResults.total} correct
-                  </div>
+              </div>
               <div className="text-xl text-[#00AFB9] mb-6">
                 {grammarQuizResults.percentage}% accuracy
+              </div>
+              
+              {/* Detailed evaluations */}
+              {grammarQuizEvaluations.length > 0 && (
+                <div className="w-full mb-8">
+                  <h4 className="text-lg font-semibold text-[#0081A7] mb-4">Question Breakdown:</h4>
+                  <div className="space-y-4">
+                    {grammarQuizEvaluations.map((evaluation, idx) => (
+                      <div key={idx} className={`p-4 rounded-lg border-2 ${
+                        evaluation.isCorrect 
+                          ? 'border-green-500 bg-green-50' 
+                          : 'border-red-500 bg-red-50'
+                      }`}>
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="text-lg font-semibold text-[#0081A7]">
+                            Question {idx + 1}: {grammarQuizQuestions[idx]?.chinese}
+                          </div>
+                          <div className={`text-2xl ${evaluation.isCorrect ? 'text-green-600' : 'text-red-600'}`}>
+                            {evaluation.isCorrect ? '✓' : '✗'}
+                          </div>
+                        </div>
+                        <div className="text-sm text-[#00AFB9] mb-2">
+                          {grammarQuizQuestions[idx]?.pinyin}
+                        </div>
+                        <div className="text-sm text-gray-600 mb-2">
+                          <strong>Your answer:</strong> {evaluation.studentAnswer}
+                        </div>
+                        {!evaluation.isCorrect && (
+                          <div className="text-sm text-green-600 mb-2">
+                            <strong>Correct answer:</strong> {evaluation.correctAnswer}
+                          </div>
+                        )}
+                        <div className="text-sm text-gray-700 italic">
+                          {evaluation.explanation}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
+              )}
               
               {grammarQuizResults.percentage >= 80 && (
                 <div className="text-center">
@@ -1639,8 +1737,8 @@ export default function Home() {
                     >
                       Review lesson
                     </button>
-        </div>
-      </div>
+                  </div>
+                </div>
               )}
             </div>
           </div>
@@ -1816,10 +1914,12 @@ export default function Home() {
               
               <button
                 onClick={() => {
+                  setGrammarQuizQuestions(lessonData!.grammarQuiz);
                   setGrammarQuizStarted(true);
-                  setGrammarQuizAnswers(Array(lessonData!.grammar.examples.length).fill(''));
+                  setGrammarQuizAnswers(Array(lessonData!.grammarQuiz.length).fill(''));
                   setCurrentGrammarQuestionIndex(0);
                   setGrammarQuizResults(null);
+                  setGrammarQuizEvaluations([]);
                   setPage(8);
                 }}
                 className="w-full p-6 bg-[#FDFCDC] rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 border-2 border-[#FED9B7] hover:border-[#F07167]"

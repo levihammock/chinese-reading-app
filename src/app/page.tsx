@@ -22,6 +22,7 @@ interface GrammarExample {
 interface GrammarConcept {
   name: string;
   description: string;
+  explanation: string;
   examples: GrammarExample[];
 }
 
@@ -117,6 +118,7 @@ const generateCompleteLesson = async (skillLevel: SkillLevel, subject: string) =
       grammar: {
         name: "Basic Subject-Verb-Object",
         description: "Subject + Verb + Object",
+        explanation: "This is a basic grammar pattern where the subject, verb, and object are combined. It's a simple and effective way to express actions and relationships in Chinese.",
         examples: [
           { chinese: "我喜欢猫", pinyin: "Wǒ xǐhuān māo", english: "I like cats" },
           { chinese: "他学习中文", pinyin: "Tā xuéxí zhōngwén", english: "He studies Chinese" },
@@ -502,6 +504,7 @@ export default function Home() {
       HSK1: {
         name: "Basic Subject-Verb-Object",
         description: "Subject + Verb + Object",
+        explanation: "This is a basic grammar pattern where the subject, verb, and object are combined. It's a simple and effective way to express actions and relationships in Chinese.",
         examples: [
           { chinese: "我喜欢猫", pinyin: "Wǒ xǐhuān māo", english: "I like cats" },
           { chinese: "他学习中文", pinyin: "Tā xuéxí zhōngwén", english: "He studies Chinese" },
@@ -513,6 +516,7 @@ export default function Home() {
       HSK2: {
         name: "Time + Subject + Verb + Object",
         description: "Time + Subject + Verb + Object",
+        explanation: "This pattern includes a time expression, subject, verb, and object. It's used to describe actions that happen at a specific time.",
         examples: [
           { chinese: "今天我去学校", pinyin: "Jīntiān wǒ qù xuéxiào", english: "Today I go to school" },
           { chinese: "明天他学习中文", pinyin: "Míngtiān tā xuéxí zhōngwén", english: "Tomorrow he studies Chinese" },
@@ -524,6 +528,7 @@ export default function Home() {
       HSK3: {
         name: "Subject + 不/没 + Verb + Object",
         description: "Subject + 不/没 (bù/méi) + Verb + Object",
+        explanation: "This pattern includes a subject, a negation, a verb, and an object. It's used to express actions that are not done or not present.",
         examples: [
           { chinese: "我不喜欢狗", pinyin: "Wǒ bù xǐhuān gǒu", english: "I don't like dogs" },
           { chinese: "他没学习中文", pinyin: "Tā méi xuéxí zhōngwén", english: "He didn't study Chinese" },
@@ -535,6 +540,7 @@ export default function Home() {
       HSK4: {
         name: "Subject + 一 + Measure Word + Object + 也/都 + 不/没 + Verb",
         description: "Subject + 一(yī) + Measure Word + Object + 也/都(yě/dōu) + 不/没(bù/méi) + Verb",
+        explanation: "This pattern includes a subject, a measure word, an object, a negation, and a verb. It's used to express actions that are not done or not present in a specific quantity.",
         examples: [
           { chinese: "我一个苹果也不吃", pinyin: "Wǒ yī gè píngguǒ yě bù chī", english: "I don't eat even one apple" },
           { chinese: "他一本中文书都没读", pinyin: "Tā yī běn zhōngwén shū dōu méi dú", english: "He didn't read even one Chinese book" },
@@ -546,6 +552,7 @@ export default function Home() {
       HSK5: {
         name: "Subject + 把 + Object + Verb + 了",
         description: "Subject + 把(bǎ) + Object + Verb + 了(le)",
+        explanation: "This pattern includes a subject, an action verb, an object, and a result particle. It's used to express actions that are completed.",
         examples: [
           { chinese: "我把苹果吃了", pinyin: "Wǒ bǎ píngguǒ chī le", english: "I ate the apple" },
           { chinese: "他把中文书读了", pinyin: "Tā bǎ zhōngwén shū dú le", english: "He read the Chinese book" },
@@ -557,6 +564,7 @@ export default function Home() {
       HSK6: {
         name: "Subject + 被 + Object + Verb + 了",
         description: "Subject + 被(bèi) + Object + Verb + 了(le)",
+        explanation: "This pattern includes a subject, a passive verb, an object, and a result particle. It's used to express actions that are completed by someone else.",
         examples: [
           { chinese: "苹果被我吃了", pinyin: "Píngguǒ bèi wǒ chī le", english: "The apple was eaten by me" },
           { chinese: "中文书被他读了", pinyin: "Zhōngwén shū bèi tā dú le", english: "The Chinese book was read by him" },
@@ -1526,34 +1534,37 @@ export default function Home() {
               <>
                 <div className="w-full mb-8">
                   <div className="text-lg font-semibold text-[#0081A7] mb-2">{grammarConcept.name}</div>
-                  <div className="text-base text-[#00AFB9]">{grammarConcept.description}</div>
+                  <div className="text-base text-[#00AFB9] mb-2">{grammarConcept.description}</div>
+                  <div className="text-sm text-gray-600 italic">{grammarConcept.explanation}</div>
                 </div>
                 
                 <div className="flex flex-col gap-4 w-full">
                   {grammarConcept.examples.map((example, idx) => (
                     <div key={idx} className="flex items-center gap-6 w-full">
-                      <div className="flex flex-col items-start min-w-[200px]">
+                      <div className="flex flex-col items-start min-w-[200px] flex-shrink-0">
                         <span className="text-xl text-[#0081A7] font-bold">{example.chinese}</span>
                         <span className="text-[#00AFB9] text-sm">{example.pinyin}</span>
                       </div>
-                      <button
-                        type="button"
-                        className="ml-4 px-6 py-2 rounded-lg bg-[#FED9B7] text-[#F07167] font-semibold text-base focus:outline-none focus:ring-2 focus:ring-[#F07167] transition-all duration-200 flex items-center justify-center"
-                        style={{ minWidth: 200, minHeight: 60 }}
-                        onClick={() => handleGrammarReveal(idx)}
-                        disabled={grammarRevealed[idx] || grammarShowAll}
-                      >
-                        <span
-                          style={{
-                            filter: grammarRevealed[idx] || grammarShowAll ? 'none' : 'blur(6px)',
-                            transition: 'filter 0.2s',
-                            cursor: grammarRevealed[idx] || grammarShowAll ? 'default' : 'pointer',
-                            userSelect: 'none',
-                          }}
+                      <div className="flex-1 flex justify-start">
+                        <button
+                          type="button"
+                          className="px-6 py-2 rounded-lg bg-[#FED9B7] text-[#F07167] font-semibold text-base focus:outline-none focus:ring-2 focus:ring-[#F07167] transition-all duration-200 flex items-center justify-center"
+                          style={{ width: 200, height: 60 }}
+                          onClick={() => handleGrammarReveal(idx)}
+                          disabled={grammarRevealed[idx] || grammarShowAll}
                         >
-                          {example.english}
-                        </span>
-                      </button>
+                          <span
+                            style={{
+                              filter: grammarRevealed[idx] || grammarShowAll ? 'none' : 'blur(6px)',
+                              transition: 'filter 0.2s',
+                              cursor: grammarRevealed[idx] || grammarShowAll ? 'default' : 'pointer',
+                              userSelect: 'none',
+                            }}
+                          >
+                            {example.english}
+                          </span>
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>

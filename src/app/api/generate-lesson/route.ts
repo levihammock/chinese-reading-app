@@ -151,6 +151,7 @@ OUTPUT FORMAT (respond with ONLY this JSON structure):
   "grammar": {
     "name": "Basic Subject-Verb-Object",
     "description": "Subject + Verb + Object",
+    "explanation": "This pattern is used to express basic actions where someone does something to an object.",
     "examples": [
       {
         "chinese": "我喜欢猫",
@@ -191,6 +192,7 @@ SPECIFIC REQUIREMENTS:
 - Create 5 example sentences that are relevant to "${subject}"
 - Each example should include chinese, pinyin, and english
 - Examples should demonstrate the grammar pattern clearly
+- Include a brief explanation (1-2 sentences) of how this grammar pattern is used and what it conveys
 
 3. GRAMMAR QUIZ QUESTIONS:
 - Create 5 DIFFERENT example sentences that use the SAME grammar pattern as above

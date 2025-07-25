@@ -208,6 +208,7 @@ export default function Home() {
     correctAnswer: string;
     studentAnswer: string;
   }>>([]);
+  const [grammarQuizLoading, setGrammarQuizLoading] = useState(false);
 
   // Reading lesson state
   const [readingStarted, setReadingStarted] = useState(false);
@@ -616,6 +617,7 @@ export default function Home() {
     setCurrentGrammarQuestionIndex(0);
     setGrammarQuizResults(null);
     setGrammarQuizEvaluations([]);
+    setGrammarQuizLoading(false);
     setPage(8);
   };
 
@@ -624,6 +626,22 @@ export default function Home() {
     const newAnswers = [...grammarQuizAnswers];
     newAnswers[currentGrammarQuestionIndex] = answer;
     setGrammarQuizAnswers(newAnswers);
+  };
+
+  // Handle "I'm not sure" button
+  const handleNotSure = () => {
+    // Mark current question as not sure (empty answer = incorrect)
+    const newAnswers = [...grammarQuizAnswers];
+    newAnswers[currentGrammarQuestionIndex] = '';
+    setGrammarQuizAnswers(newAnswers);
+    
+    // Move to next question
+    if (currentGrammarQuestionIndex < grammarQuizQuestions.length - 1) {
+      setCurrentGrammarQuestionIndex(currentGrammarQuestionIndex + 1);
+    } else {
+      // If it's the last question, submit the quiz
+      handleSubmitGrammarQuiz();
+    }
   };
 
   // Navigate to next grammar question
@@ -662,6 +680,7 @@ export default function Home() {
   const handleSubmitGrammarQuiz = async () => {
     try {
       console.log('Submitting grammar quiz for AI evaluation...');
+      setGrammarQuizLoading(true);
       
       const response = await fetch('/api/evaluate-grammar-quiz', {
         method: 'POST',
@@ -689,9 +708,11 @@ export default function Home() {
         total: evaluationData.summary.totalCount,
         percentage: evaluationData.summary.percentage
       });
+      setGrammarQuizLoading(false);
       setPage(9);
     } catch (error) {
       console.error('Error evaluating grammar quiz:', error);
+      setGrammarQuizLoading(false);
       // Fallback to simple evaluation
       let correct = 0;
       grammarQuizQuestions.forEach((question, index) => {
@@ -712,6 +733,7 @@ export default function Home() {
     setCurrentGrammarQuestionIndex(0);
     setGrammarQuizResults(null);
     setGrammarQuizEvaluations([]);
+    setGrammarQuizLoading(false);
     setPage(8);
   };
 
@@ -723,6 +745,7 @@ export default function Home() {
     setCurrentGrammarQuestionIndex(0);
     setGrammarQuizResults(null);
     setGrammarQuizEvaluations([]);
+    setGrammarQuizLoading(false);
     setPage(7); // Go back to grammar lesson
   };
 
@@ -952,7 +975,7 @@ export default function Home() {
             setCurrentGrammarQuestionIndex(0);
             setGrammarQuizResults(null);
             setGrammarQuizEvaluations([]);
-            setShowLoadingPage(false); // Hide loading page
+            setGrammarQuizLoading(false);
             setPage(targetPage);
             return;
           } else {
@@ -962,6 +985,7 @@ export default function Home() {
             setCurrentGrammarQuestionIndex(0);
             setGrammarQuizResults(null);
             setGrammarQuizEvaluations([]);
+            setGrammarQuizLoading(false);
           }
         }
         
@@ -1190,6 +1214,52 @@ export default function Home() {
               <div className="flex items-center justify-center space-x-2">
                 <div className="w-2 h-2 bg-[#F07167] rounded-full animate-pulse" style={{animationDelay: '1s'}}></div>
                 <span>Preparing exercises</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {grammarQuizLoading && (
+        <div className="fixed inset-0 bg-white bg-opacity-90 flex items-center justify-center z-50">
+          <div className="text-center">
+            <div className="mb-8">
+              <h1 className="text-4xl font-bold text-[#0081A7] mb-4">KanKan</h1>
+              <h2 className="text-lg text-[#00AFB9] font-medium">Evaluating your answers...</h2>
+            </div>
+            
+            {/* Animated loading indicator */}
+            <div className="flex justify-center mb-8">
+              <div className="relative">
+                {/* Outer spinning circle */}
+                <div className="w-16 h-16 border-4 border-[#FED9B7] border-t-[#F07167] rounded-full animate-spin"></div>
+                
+                {/* Inner pulsing circle */}
+                <div className="absolute inset-2 bg-[#00AFB9] rounded-full animate-pulse"></div>
+                
+                {/* Center dot */}
+                <div className="absolute inset-6 bg-[#0081A7] rounded-full"></div>
+              </div>
+            </div>
+            
+            {/* Loading text */}
+            <div className="text-[#0081A7] text-lg font-medium">
+              <span>Analyzing your translations</span>
+              <span className="animate-pulse">...</span>
+            </div>
+            
+            {/* Progress steps */}
+            <div className="mt-8 space-y-2 text-sm text-[#00AFB9]">
+              <div className="flex items-center justify-center space-x-2">
+                <div className="w-2 h-2 bg-[#00AFB9] rounded-full animate-pulse"></div>
+                <span>Checking grammar accuracy</span>
+              </div>
+              <div className="flex items-center justify-center space-x-2">
+                <div className="w-2 h-2 bg-[#FED9B7] rounded-full animate-pulse" style={{animationDelay: '0.5s'}}></div>
+                <span>Evaluating meaning</span>
+              </div>
+              <div className="flex items-center justify-center space-x-2">
+                <div className="w-2 h-2 bg-[#F07167] rounded-full animate-pulse" style={{animationDelay: '1s'}}></div>
+                <span>Preparing feedback</span>
               </div>
             </div>
           </div>
@@ -1622,6 +1692,15 @@ export default function Home() {
                   />
                 </div>
                 
+                <div className="flex flex-col gap-3 mb-6">
+                  <button
+                    onClick={handleNotSure}
+                    className="px-6 py-3 bg-gray-300 text-gray-600 font-semibold rounded-xl hover:bg-gray-400 transition-all duration-200"
+                  >
+                    I'm not sure
+                  </button>
+                </div>
+                
                 <div className="flex justify-between items-center">
                   {currentGrammarQuestionIndex > 0 && (
                     <button
@@ -1933,6 +2012,7 @@ export default function Home() {
                   setCurrentGrammarQuestionIndex(0);
                   setGrammarQuizResults(null);
                   setGrammarQuizEvaluations([]);
+                  setGrammarQuizLoading(false);
                   setPage(8);
                 }}
                 className="w-full p-6 bg-[#FDFCDC] rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 border-2 border-[#FED9B7] hover:border-[#F07167]"

@@ -100,6 +100,16 @@ export default function Home() {
   const [grammarShowAll, setGrammarShowAll] = useState(false);
   const [grammarLoading, setGrammarLoading] = useState(false);
 
+  // Grammar quiz state
+  const [grammarQuizStarted, setGrammarQuizStarted] = useState(false);
+  const [grammarQuizAnswers, setGrammarQuizAnswers] = useState<string[]>([]);
+  const [currentGrammarQuestionIndex, setCurrentGrammarQuestionIndex] = useState(0);
+  const [grammarQuizResults, setGrammarQuizResults] = useState<{
+    correct: number;
+    total: number;
+    percentage: number;
+  } | null>(null);
+
   // Handler for HSK selection
   const handleContinue = () => {
     setPage(2);
@@ -395,6 +405,85 @@ export default function Home() {
     setGrammarRevealed(Array(grammarConcept!.examples.length).fill(true));
   };
 
+  // Start grammar quiz
+  const handleStartGrammarQuiz = () => {
+    setGrammarQuizStarted(true);
+    setGrammarQuizAnswers(Array(grammarConcept!.examples.length).fill(''));
+    setCurrentGrammarQuestionIndex(0);
+    setGrammarQuizResults(null);
+    setPage(8);
+  };
+
+  // Update grammar quiz answer
+  const handleGrammarAnswerChange = (answer: string) => {
+    const newAnswers = [...grammarQuizAnswers];
+    newAnswers[currentGrammarQuestionIndex] = answer;
+    setGrammarQuizAnswers(newAnswers);
+  };
+
+  // Navigate to next grammar question
+  const handleNextGrammarQuestion = () => {
+    if (currentGrammarQuestionIndex < grammarConcept!.examples.length - 1) {
+      setCurrentGrammarQuestionIndex(currentGrammarQuestionIndex + 1);
+    }
+  };
+
+  // Navigate to previous grammar question
+  const handlePreviousGrammarQuestion = () => {
+    if (currentGrammarQuestionIndex > 0) {
+      setCurrentGrammarQuestionIndex(currentGrammarQuestionIndex - 1);
+    }
+  };
+
+  // Fuzzy match function for checking answers
+  const fuzzyMatch = (userAnswer: string, correctAnswer: string): boolean => {
+    const normalize = (str: string) => str.toLowerCase().trim().replace(/[^\w\s]/g, '');
+    const user = normalize(userAnswer);
+    const correct = normalize(correctAnswer);
+    
+    // Exact match
+    if (user === correct) return true;
+    
+    // Check if user answer contains the main words from correct answer
+    const correctWords = correct.split(' ').filter(word => word.length > 2);
+    const userWords = user.split(' ').filter(word => word.length > 2);
+    
+    // If user has at least 80% of the important words, consider it correct
+    const matchingWords = correctWords.filter(word => userWords.includes(word));
+    return matchingWords.length >= correctWords.length * 0.8;
+  };
+
+  // Submit grammar quiz
+  const handleSubmitGrammarQuiz = () => {
+    let correct = 0;
+    grammarConcept!.examples.forEach((example, index) => {
+      if (fuzzyMatch(grammarQuizAnswers[index], example.english)) {
+        correct++;
+      }
+    });
+    
+    const percentage = Math.round((correct / grammarConcept!.examples.length) * 100);
+    setGrammarQuizResults({ correct, total: grammarConcept!.examples.length, percentage });
+    setPage(9);
+  };
+
+  // Retry grammar quiz
+  const handleGrammarQuizRetry = () => {
+    setGrammarQuizAnswers(Array(grammarConcept!.examples.length).fill(''));
+    setCurrentGrammarQuestionIndex(0);
+    setGrammarQuizResults(null);
+    setPage(8);
+  };
+
+  // Review grammar lesson
+  const handleGrammarReviewLesson = () => {
+    setGrammarQuizStarted(false);
+    setGrammarQuizAnswers([]);
+    setCurrentGrammarQuestionIndex(0);
+    setGrammarQuizResults(null);
+    setPage(7); // Go back to grammar lesson
+  };
+
   // Render header and subheader based on current page
   const renderHeader = () => {
     if (page === 1) {
@@ -430,6 +519,20 @@ export default function Home() {
         </>
       );
     } else if (page === 7) {
+      return (
+        <>
+          <h1 className="text-4xl font-bold text-[#0081A7] mb-4 mt-8">Lesson 2: Grammar</h1>
+          <h2 className="text-lg text-[#00AFB9] mb-10 font-medium">Now, let&apos;s work on some full sentences</h2>
+        </>
+      );
+    } else if (page === 8) {
+      return (
+        <>
+          <h1 className="text-4xl font-bold text-[#0081A7] mb-4 mt-8">Lesson 2: Grammar</h1>
+          <h2 className="text-lg text-[#00AFB9] mb-10 font-medium">Now, let&apos;s work on some full sentences</h2>
+        </>
+      );
+    } else if (page === 9) {
       return (
         <>
           <h1 className="text-4xl font-bold text-[#0081A7] mb-4 mt-8">Lesson 2: Grammar</h1>
@@ -831,7 +934,7 @@ export default function Home() {
                   <button
                     className={`px-8 py-3 bg-[#00AFB9] text-white font-semibold rounded-xl shadow-lg w-full max-w-xs text-lg transition-all duration-200
                       ${grammarRevealed.every(Boolean) ? 'hover:bg-[#0081A7]' : 'opacity-50 cursor-not-allowed'}`}
-                    onClick={() => setPage(1)}
+                    onClick={handleStartGrammarQuiz}
                     disabled={!grammarRevealed.every(Boolean)}
                   >
                     Continue
@@ -839,6 +942,128 @@ export default function Home() {
                 </div>
               </>
             )}
+          </div>
+        )}
+        {page === 8 && grammarQuizStarted && (
+          <div className="w-full max-w-2xl bg-[#FDFCDC] rounded-2xl shadow-lg p-8 flex flex-col items-center relative min-h-[400px]">
+            <h3 className="text-2xl font-bold text-[#0081A7] mb-6">Grammar Quiz: Translate to English</h3>
+            {grammarConcept && (
+              <div className="w-full">
+                <div className="text-center mb-8">
+                  <div className="text-2xl text-[#0081A7] font-bold mb-2">
+                    {grammarConcept.examples[currentGrammarQuestionIndex].chinese}
+                  </div>
+                  <div className="text-lg text-[#00AFB9] mb-4">
+                    {grammarConcept.examples[currentGrammarQuestionIndex].pinyin}
+                  </div>
+                  <div className="text-sm text-[#00AFB9]">
+                    Question {currentGrammarQuestionIndex + 1} of {grammarConcept.examples.length}
+                  </div>
+                </div>
+                
+                <div className="mb-8">
+                  <label className="block text-lg font-semibold text-[#0081A7] mb-4">Enter the English translation:</label>
+                  <input
+                    type="text"
+                    value={grammarQuizAnswers[currentGrammarQuestionIndex]}
+                    onChange={(e) => handleGrammarAnswerChange(e.target.value)}
+                    className="w-full px-6 py-4 border-2 border-[#FED9B7] rounded-xl focus:ring-2 focus:ring-[#FED9B7] focus:border-transparent transition-all duration-200 bg-white text-[#0081A7] font-medium text-lg"
+                    placeholder="Type your answer here..."
+                    autoFocus
+                  />
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  {currentGrammarQuestionIndex > 0 && (
+                    <button
+                      className="px-6 py-3 bg-[#FED9B7] text-[#0081A7] font-semibold rounded-xl hover:bg-[#F07167] hover:text-white transition-all duration-200"
+                      onClick={handlePreviousGrammarQuestion}
+                    >
+                      Back
+                    </button>
+                  )}
+                  <div className="flex-1"></div>
+                  {currentGrammarQuestionIndex < grammarConcept.examples.length - 1 ? (
+                    <button
+                      className={`px-6 py-3 font-semibold rounded-xl transition-all duration-200
+                        ${grammarQuizAnswers[currentGrammarQuestionIndex].trim() 
+                          ? 'bg-[#00AFB9] text-white hover:bg-[#0081A7]' 
+                          : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
+                      onClick={handleNextGrammarQuestion}
+                      disabled={!grammarQuizAnswers[currentGrammarQuestionIndex].trim()}
+                    >
+                      Next question
+                    </button>
+                  ) : (
+                    <button
+                      className={`px-6 py-3 font-semibold rounded-xl transition-all duration-200
+                        ${grammarQuizAnswers.every(answer => answer.trim() !== '') 
+                          ? 'bg-[#00AFB9] text-white hover:bg-[#0081A7]' 
+                          : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
+                      onClick={handleSubmitGrammarQuiz}
+                      disabled={!grammarQuizAnswers.every(answer => answer.trim() !== '')}
+                    >
+                      Submit Answers
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+        {page === 9 && grammarQuizResults && (
+          <div className="w-full max-w-2xl bg-[#FDFCDC] rounded-2xl shadow-lg p-8 flex flex-col items-center relative min-h-[400px]">
+            <h3 className="text-2xl font-bold text-[#0081A7] mb-6">Grammar Quiz Results</h3>
+            <div className="text-center mb-8">
+              <div className="text-3xl font-bold text-[#0081A7] mb-4">
+                {grammarQuizResults.correct}/{grammarQuizResults.total} correct
+              </div>
+              <div className="text-xl text-[#00AFB9] mb-6">
+                {grammarQuizResults.percentage}% accuracy
+              </div>
+              
+              {grammarQuizResults.percentage >= 80 && (
+                <div className="text-center">
+                  <div className="text-6xl mb-4">🎉</div>
+                  <div className="text-2xl font-bold text-[#0081A7] mb-6">Great job!</div>
+                  <div className="flex gap-4 justify-center">
+                    <button
+                      className="px-6 py-3 bg-[#FED9B7] text-[#0081A7] font-semibold rounded-xl hover:bg-[#F07167] hover:text-white transition-all duration-200"
+                      onClick={() => setPage(1)}
+                    >
+                      Start Over
+                    </button>
+                    <button
+                      className="px-6 py-3 bg-[#00AFB9] text-white font-semibold rounded-xl hover:bg-[#0081A7] transition-all duration-200"
+                      onClick={() => setPage(1)}
+                    >
+                      Next Lesson
+                    </button>
+                  </div>
+                </div>
+              )}
+              
+              {grammarQuizResults.percentage < 80 && (
+                <div className="text-center">
+                  <div className="text-6xl mb-4">😐</div>
+                  <div className="text-2xl font-bold text-[#0081A7] mb-6">Keep practicing!</div>
+                  <div className="flex gap-4 justify-center">
+                    <button
+                      className="px-6 py-3 bg-[#FED9B7] text-[#0081A7] font-semibold rounded-xl hover:bg-[#F07167] hover:text-white transition-all duration-200"
+                      onClick={handleGrammarQuizRetry}
+                    >
+                      Try again
+                    </button>
+                    <button
+                      className="px-6 py-3 bg-[#00AFB9] text-white font-semibold rounded-xl hover:bg-[#0081A7] transition-all duration-200"
+                      onClick={handleGrammarReviewLesson}
+                    >
+                      Review lesson
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>

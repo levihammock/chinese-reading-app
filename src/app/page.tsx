@@ -1695,7 +1695,7 @@ export default function Home() {
                 <div className="flex flex-col gap-3 mb-6">
                   <button
                     onClick={handleNotSure}
-                    className="px-6 py-3 bg-gray-300 text-gray-600 font-semibold rounded-xl hover:bg-gray-400 transition-all duration-200"
+                    className="px-4 py-2 bg-gray-200 text-gray-500 font-medium rounded-lg hover:bg-gray-300 transition-all duration-200 text-sm self-center"
                   >
                     I&apos;m not sure
                   </button>
@@ -1724,12 +1724,8 @@ export default function Home() {
                     </button>
                   ) : (
                     <button
-                      className={`px-6 py-3 font-semibold rounded-xl transition-all duration-200
-                        ${grammarQuizAnswers.every(answer => answer.trim() !== '') 
-                          ? 'bg-[#00AFB9] text-white hover:bg-[#0081A7]' 
-                          : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
+                      className="px-6 py-3 bg-[#00AFB9] text-white font-semibold rounded-xl hover:bg-[#0081A7] transition-all duration-200"
                       onClick={handleSubmitGrammarQuiz}
-                      disabled={!grammarQuizAnswers.every(answer => answer.trim() !== '')}
                     >
                       Submit Answers
                     </button>

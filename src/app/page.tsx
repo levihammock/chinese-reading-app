@@ -32,7 +32,7 @@ interface AlignedWord {
 }
 
 interface StoryData {
-  story: AlignedWord[];
+  aligned: AlignedWord[];
   sentence: string;
   isAIGenerated: boolean;
 }
@@ -281,7 +281,7 @@ export default function Home() {
       
       // Set up reading lesson state
       setStoryData(completeLesson.story);
-      setReadingRevealed(Array(completeLesson.story.story.length).fill(false));
+      setReadingRevealed(Array(completeLesson.story.aligned.length).fill(false));
       setReadingShowAll(false);
       
       console.log('Setting lessonLoading to false...');
@@ -684,7 +684,7 @@ export default function Home() {
       console.error('Error generating story:', error);
       // Fallback story
       return {
-        story: [
+        aligned: [
           { chinese: "我", pinyin: "wǒ", english: "I" },
           { chinese: "喜欢", pinyin: "xǐhuān", english: "like" },
           { chinese: "学习", pinyin: "xuéxí", english: "study" },
@@ -708,7 +708,7 @@ export default function Home() {
       const completeLesson = await generateCompleteLesson(skillLevel, subject);
       setLessonData(completeLesson);
       setStoryData(completeLesson.story);
-      setReadingRevealed(Array(completeLesson.story.story.length).fill(false));
+      setReadingRevealed(Array(completeLesson.story.aligned.length).fill(false));
       setReadingShowAll(false);
       setReadingStarted(true);
       setLessonLoading(false);
@@ -721,7 +721,7 @@ export default function Home() {
     setReadingRevealed(prev => {
       if (!prev || !Array.isArray(prev)) {
         console.warn('readingRevealed is not properly initialized, creating new array');
-        return Array(storyData?.story?.length || 0).fill(false).map((_, i) => i === idx ? true : false);
+        return Array(storyData?.aligned?.length || 0).fill(false).map((_, i) => i === idx ? true : false);
       }
       return prev.map((r, i) => (i === idx ? true : r));
     });
@@ -730,7 +730,7 @@ export default function Home() {
   // Reveal all words in reading
   const handleReadingShowAll = () => {
     setReadingShowAll(true);
-    setReadingRevealed(Array(storyData?.story?.length || 0).fill(true));
+    setReadingRevealed(Array(storyData?.aligned?.length || 0).fill(true));
   };
 
   // Navigation menu component
@@ -773,7 +773,7 @@ export default function Home() {
           setGrammarRevealed(Array(completeLesson.grammar.examples.length).fill(false));
           setGrammarShowAll(false);
           setStoryData(completeLesson.story);
-          setReadingRevealed(Array(completeLesson.story.story.length).fill(false));
+          setReadingRevealed(Array(completeLesson.story.aligned.length).fill(false));
           setReadingShowAll(false);
           setShowLoadingPage(false); // Hide loading page
         }
@@ -805,7 +805,7 @@ export default function Home() {
           setGrammarRevealed(Array(completeLesson.grammar.examples.length).fill(false));
           setGrammarShowAll(false);
           setStoryData(completeLesson.story);
-          setReadingRevealed(Array(completeLesson.story.story.length).fill(false));
+          setReadingRevealed(Array(completeLesson.story.aligned.length).fill(false));
           setReadingShowAll(false);
           setShowLoadingPage(false); // Hide loading page
         }
@@ -904,7 +904,7 @@ export default function Home() {
           const completeLesson = await generateCompleteLesson(skillLevel, subject);
           setLessonData(completeLesson);
           setStoryData(completeLesson.story);
-          setReadingRevealed(Array(completeLesson.story.story.length).fill(false));
+          setReadingRevealed(Array(completeLesson.story.aligned.length).fill(false));
           setReadingShowAll(false);
           setReadingStarted(true);
           setShowLoadingPage(false); // Hide loading page
@@ -918,7 +918,7 @@ export default function Home() {
             console.log('Setting up reading state for page 10...');
             setReadingStarted(true);
             setStoryData(lessonData.story);
-            setReadingRevealed(Array(lessonData.story.story.length).fill(false));
+            setReadingRevealed(Array(lessonData.story.aligned.length).fill(false));
             setReadingShowAll(false);
           }
         }
@@ -1666,15 +1666,15 @@ export default function Home() {
                       try {
                         console.log('Rendering story content');
                         console.log('lessonData.story:', lessonData.story);
-                        console.log('lessonData.story.story:', lessonData.story.story);
+                        console.log('lessonData.story.aligned:', lessonData.story.aligned);
                         console.log('readingRevealed:', readingRevealed);
                         
-                        if (!lessonData.story || !lessonData.story.story || !Array.isArray(lessonData.story.story)) {
+                        if (!lessonData.story || !lessonData.story.aligned || !Array.isArray(lessonData.story.aligned)) {
                           console.error('Invalid story data structure');
                           return <div className="text-red-500">Error: Invalid story data</div>;
                         }
                         
-                        return lessonData.story.story.map((word, idx) => {
+                        return lessonData.story.aligned.map((word, idx) => {
                           try {
                             // Safety check for readingRevealed array
                             const isRevealed = readingRevealed && Array.isArray(readingRevealed) && readingRevealed[idx];
@@ -1752,7 +1752,7 @@ export default function Home() {
               <div>readingStarted: {readingStarted ? '✓' : '✗'}</div>
               <div>storyData: {storyData ? '✓' : '✗'}</div>
               {lessonData && <div>story exists: {lessonData.story ? '✓' : '✗'}</div>}
-              {lessonData?.story && <div>story array length: {lessonData.story.story?.length || 'undefined'}</div>}
+              {lessonData?.story && <div>story array length: {lessonData.story.aligned?.length || 'undefined'}</div>}
             </div>
           </div>
         )}
@@ -1846,7 +1846,7 @@ export default function Home() {
                     if (lessonData && lessonData.story) {
                       console.log('Setting story data and reading state');
                       setStoryData(lessonData.story);
-                      setReadingRevealed(Array(lessonData.story.story.length).fill(false));
+                      setReadingRevealed(Array(lessonData.story.aligned.length).fill(false));
                       setReadingShowAll(false);
                       setReadingStarted(true);
                       setPage(10);

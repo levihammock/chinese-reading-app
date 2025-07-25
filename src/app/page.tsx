@@ -68,6 +68,65 @@ async function generateVocab(skillLevel: SkillLevel, topic: string): Promise<Voc
   return allWords;
 }
 
+// Generate complete lesson using AI
+const generateCompleteLesson = async (skillLevel: SkillLevel, subject: string) => {
+  try {
+    const response = await fetch('/api/generate-lesson', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ skillLevel, subject }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to generate lesson');
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error generating lesson:', error);
+    // Fallback lesson data
+    return {
+      vocabulary: [
+        { chinese: "我", pinyin: "wǒ", english: "I" },
+        { chinese: "喜欢", pinyin: "xǐhuān", english: "like" },
+        { chinese: "学习", pinyin: "xuéxí", english: "study" },
+        { chinese: "中文", pinyin: "zhōngwén", english: "Chinese" },
+        { chinese: "朋友", pinyin: "péngyǒu", english: "friend" },
+        { chinese: "快乐", pinyin: "kuàilè", english: "happy" },
+        { chinese: "时间", pinyin: "shíjiān", english: "time" },
+        { chinese: "老师", pinyin: "lǎoshī", english: "teacher" },
+        { chinese: "学校", pinyin: "xuéxiào", english: "school" },
+        { chinese: "动物", pinyin: "dòngwù", english: "animal" },
+      ],
+      grammar: {
+        name: "Basic Subject-Verb-Object",
+        description: "Subject + Verb + Object",
+        examples: [
+          { chinese: "我喜欢猫", pinyin: "Wǒ xǐhuān māo", english: "I like cats" },
+          { chinese: "他学习中文", pinyin: "Tā xuéxí zhōngwén", english: "He studies Chinese" },
+          { chinese: "她吃苹果", pinyin: "Tā chī píngguǒ", english: "She eats apples" },
+          { chinese: "我们看电影", pinyin: "Wǒmen kàn diànyǐng", english: "We watch movies" },
+          { chinese: "你喝咖啡", pinyin: "Nǐ hē kāfēi", english: "You drink coffee" }
+        ]
+      },
+      story: {
+        story: [
+          { chinese: "我", pinyin: "wǒ", english: "I" },
+          { chinese: "喜欢", pinyin: "xǐhuān", english: "like" },
+          { chinese: "学习", pinyin: "xuéxí", english: "study" },
+          { chinese: "中文", pinyin: "zhōngwén", english: "Chinese" },
+        ],
+        sentence: "I like studying Chinese.",
+        isAIGenerated: false,
+      },
+      isAIGenerated: false,
+    };
+  }
+};
+
 export default function Home() {
   const [page, setPage] = useState(1);
   const [skillLevel, setSkillLevel] = useState<SkillLevel>('HSK1');
@@ -129,6 +188,14 @@ export default function Home() {
   const [readingShowAll, setReadingShowAll] = useState(false);
   const [readingLoading, setReadingLoading] = useState(false);
 
+  // Unified lesson data state
+  const [lessonData, setLessonData] = useState<{
+    vocabulary: VocabWord[];
+    grammar: GrammarConcept;
+    story: StoryData;
+  } | null>(null);
+  const [lessonLoading, setLessonLoading] = useState(false);
+
   // Handler for HSK selection
   const handleContinue = () => {
     setPage(2);
@@ -140,14 +207,29 @@ export default function Home() {
   // Handler for topic submission (start lesson)
   const handleStartLesson = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setLessonLoading(true);
     setPage(3);
-    // Simulate AI call
-    const words = await generateVocab(skillLevel, subject);
-    setVocab(words);
-    setRevealed(Array(words.length).fill(false));
+    
+    // Generate complete lesson content
+    const completeLesson = await generateCompleteLesson(skillLevel, subject);
+    setLessonData(completeLesson);
+    
+    // Set up vocabulary lesson state
+    setVocab(completeLesson.vocabulary);
+    setRevealed(Array(completeLesson.vocabulary.length).fill(false));
     setShowAll(false);
-    setLoading(false);
+    
+    // Set up grammar lesson state
+    setGrammarConcept(completeLesson.grammar);
+    setGrammarRevealed(Array(completeLesson.grammar.examples.length).fill(false));
+    setGrammarShowAll(false);
+    
+    // Set up reading lesson state
+    setStoryData(completeLesson.story);
+    setReadingRevealed(Array(completeLesson.story.story.length).fill(false));
+    setReadingShowAll(false);
+    
+    setLessonLoading(false);
   };
 
   // Reveal a single word
@@ -404,13 +486,20 @@ export default function Home() {
 
   // Start grammar lesson
   const handleStartGrammarLesson = async () => {
-    setGrammarLoading(true);
-    const concept = generateGrammarConcept(skillLevel, subject);
-    setGrammarConcept(concept);
-    setGrammarRevealed(Array(concept.examples.length).fill(false));
-    setGrammarShowAll(false);
-    setGrammarLoading(false);
-    setPage(7);
+    // Grammar concept should already be available from lessonData
+    if (lessonData) {
+      setPage(7);
+    } else {
+      // Fallback: generate lesson if not available
+      setLessonLoading(true);
+      const completeLesson = await generateCompleteLesson(skillLevel, subject);
+      setLessonData(completeLesson);
+      setGrammarConcept(completeLesson.grammar);
+      setGrammarRevealed(Array(completeLesson.grammar.examples.length).fill(false));
+      setGrammarShowAll(false);
+      setLessonLoading(false);
+      setPage(7);
+    }
   };
 
   // Reveal a single grammar example
@@ -539,14 +628,22 @@ export default function Home() {
 
   // Start reading lesson
   const handleStartReadingLesson = async () => {
-    setReadingLoading(true);
-    const story = await generateStory(skillLevel, subject);
-    setStoryData(story);
-    setReadingRevealed(Array(story.story.length).fill(false));
-    setReadingShowAll(false);
-    setReadingStarted(true);
-    setReadingLoading(false);
-    setPage(10);
+    // Story should already be available from lessonData
+    if (lessonData) {
+      setReadingStarted(true);
+      setPage(10);
+    } else {
+      // Fallback: generate lesson if not available
+      setLessonLoading(true);
+      const completeLesson = await generateCompleteLesson(skillLevel, subject);
+      setLessonData(completeLesson);
+      setStoryData(completeLesson.story);
+      setReadingRevealed(Array(completeLesson.story.story.length).fill(false));
+      setReadingShowAll(false);
+      setReadingStarted(true);
+      setLessonLoading(false);
+      setPage(10);
+    }
   };
 
   // Reveal a single word in reading
@@ -590,53 +687,59 @@ export default function Home() {
 
     const handlePageNavigation = async (targetPage: number) => {
       // Initialize required state for certain pages
-      if (targetPage === 3 && vocab.length === 0) {
-        generateVocab(skillLevel, subject).then(words => {
-          setVocab(words);
-          setRevealed(Array(words.length).fill(false));
-          setShowAll(false);
-        });
+      if (targetPage === 3 && !lessonData) {
+        const completeLesson = await generateCompleteLesson(skillLevel, subject);
+        setLessonData(completeLesson);
+        setVocab(completeLesson.vocabulary);
+        setRevealed(Array(completeLesson.vocabulary.length).fill(false));
+        setShowAll(false);
+        setGrammarConcept(completeLesson.grammar);
+        setGrammarRevealed(Array(completeLesson.grammar.examples.length).fill(false));
+        setGrammarShowAll(false);
+        setStoryData(completeLesson.story);
+        setReadingRevealed(Array(completeLesson.story.story.length).fill(false));
+        setReadingShowAll(false);
       }
       
       if (targetPage === 4) {
         // Initialize matching game state
-        if (vocab.length === 0) {
-          generateVocab(skillLevel, subject).then(words => {
-            setVocab(words);
-            setRevealed(Array(words.length).fill(false));
-            setShowAll(false);
-            setQuizStarted(true);
-            setQuizMatches(Array(words.length).fill(null));
-            setQuizFeedback(Array(words.length).fill(null));
-            setQuizComplete(false);
-            setPage(targetPage);
-          });
+        if (!lessonData) {
+          const completeLesson = await generateCompleteLesson(skillLevel, subject);
+          setLessonData(completeLesson);
+          setVocab(completeLesson.vocabulary);
+          setRevealed(Array(completeLesson.vocabulary.length).fill(false));
+          setShowAll(false);
+          setQuizStarted(true);
+          setQuizMatches(Array(completeLesson.vocabulary.length).fill(null));
+          setQuizFeedback(Array(completeLesson.vocabulary.length).fill(null));
+          setQuizComplete(false);
+          setPage(targetPage);
           return;
         } else {
           setQuizStarted(true);
-          setQuizMatches(Array(vocab.length).fill(null));
-          setQuizFeedback(Array(vocab.length).fill(null));
+          setQuizMatches(Array(lessonData.vocabulary.length).fill(null));
+          setQuizFeedback(Array(lessonData.vocabulary.length).fill(null));
           setQuizComplete(false);
         }
       }
       
       if (targetPage === 5) {
         // Initialize multiple choice quiz state
-        if (vocab.length === 0) {
-          generateVocab(skillLevel, subject).then(words => {
-            setVocab(words);
-            setRevealed(Array(words.length).fill(false));
-            setShowAll(false);
-            const questions = generateMultipleChoiceQuestions(words);
-            setQuizQuestions(questions);
-            setSelectedAnswers(Array(questions.length).fill(''));
-            setCurrentQuestionIndex(0);
-            setMultipleChoiceStarted(true);
-            setPage(targetPage);
-          });
+        if (!lessonData) {
+          const completeLesson = await generateCompleteLesson(skillLevel, subject);
+          setLessonData(completeLesson);
+          setVocab(completeLesson.vocabulary);
+          setRevealed(Array(completeLesson.vocabulary.length).fill(false));
+          setShowAll(false);
+          const questions = generateMultipleChoiceQuestions(completeLesson.vocabulary);
+          setQuizQuestions(questions);
+          setSelectedAnswers(Array(questions.length).fill(''));
+          setCurrentQuestionIndex(0);
+          setMultipleChoiceStarted(true);
+          setPage(targetPage);
           return;
         } else {
-          const questions = generateMultipleChoiceQuestions(vocab);
+          const questions = generateMultipleChoiceQuestions(lessonData.vocabulary);
           setQuizQuestions(questions);
           setSelectedAnswers(Array(questions.length).fill(''));
           setCurrentQuestionIndex(0);
@@ -644,38 +747,41 @@ export default function Home() {
         }
       }
       
-      if (targetPage === 7 && !grammarConcept) {
-        const concept = generateGrammarConcept(skillLevel, subject);
-        setGrammarConcept(concept);
-        setGrammarRevealed(Array(concept.examples.length).fill(false));
+      if (targetPage === 7 && !lessonData) {
+        const completeLesson = await generateCompleteLesson(skillLevel, subject);
+        setLessonData(completeLesson);
+        setGrammarConcept(completeLesson.grammar);
+        setGrammarRevealed(Array(completeLesson.grammar.examples.length).fill(false));
         setGrammarShowAll(false);
       }
       
       if (targetPage === 8) {
         // Initialize grammar quiz state
-        if (!grammarConcept) {
-          const concept = generateGrammarConcept(skillLevel, subject);
-          setGrammarConcept(concept);
-          setGrammarRevealed(Array(concept.examples.length).fill(false));
+        if (!lessonData) {
+          const completeLesson = await generateCompleteLesson(skillLevel, subject);
+          setLessonData(completeLesson);
+          setGrammarConcept(completeLesson.grammar);
+          setGrammarRevealed(Array(completeLesson.grammar.examples.length).fill(false));
           setGrammarShowAll(false);
           setGrammarQuizStarted(true);
-          setGrammarQuizAnswers(Array(concept.examples.length).fill(''));
+          setGrammarQuizAnswers(Array(completeLesson.grammar.examples.length).fill(''));
           setCurrentGrammarQuestionIndex(0);
           setGrammarQuizResults(null);
           setPage(targetPage);
           return;
         } else {
           setGrammarQuizStarted(true);
-          setGrammarQuizAnswers(Array(grammarConcept.examples.length).fill(''));
+          setGrammarQuizAnswers(Array(lessonData.grammar.examples.length).fill(''));
           setCurrentGrammarQuestionIndex(0);
           setGrammarQuizResults(null);
         }
       }
       
-      if (targetPage === 10 && !storyData) {
-        const story = await generateStory(skillLevel, subject);
-        setStoryData(story);
-        setReadingRevealed(Array(story.story.length).fill(false));
+      if (targetPage === 10 && !lessonData) {
+        const completeLesson = await generateCompleteLesson(skillLevel, subject);
+        setLessonData(completeLesson);
+        setStoryData(completeLesson.story);
+        setReadingRevealed(Array(completeLesson.story.story.length).fill(false));
         setReadingShowAll(false);
         setReadingStarted(true);
         setPage(targetPage);
@@ -868,8 +974,8 @@ export default function Home() {
         {page === 3 && (
           <div className="w-full max-w-2xl bg-[#FDFCDC] rounded-2xl shadow-lg p-8 flex flex-col items-center relative min-h-[400px]">
             <h3 className="text-2xl font-bold text-[#0081A7] mb-6">New Vocabulary</h3>
-            {loading ? (
-              <div className="text-[#0081A7] text-lg">Loading vocabulary...</div>
+            {lessonLoading ? (
+              <div className="text-[#0081A7] text-lg">Generating your lesson...</div>
             ) : (
               <>
                 <div className="flex flex-col gap-4 w-full">
@@ -1150,8 +1256,8 @@ export default function Home() {
         {page === 7 && grammarConcept && (
           <div className="w-full max-w-2xl bg-[#FDFCDC] rounded-2xl shadow-lg p-8 flex flex-col items-center relative min-h-[400px]">
             <h3 className="text-2xl font-bold text-[#0081A7] mb-6">New Grammar Concept</h3>
-            {grammarLoading ? (
-              <div className="text-[#0081A7] text-lg">Loading grammar concept...</div>
+            {lessonLoading ? (
+              <div className="text-[#0081A7] text-lg">Generating your lesson...</div>
             ) : (
               <>
                 <div className="w-full mb-8">
@@ -1337,8 +1443,8 @@ export default function Home() {
         {page === 10 && readingStarted && storyData && (
           <div className="w-full max-w-4xl bg-[#FDFCDC] rounded-2xl shadow-lg p-8 flex flex-col items-center relative min-h-[400px]">
             <h3 className="text-2xl font-bold text-[#0081A7] mb-6">Read the Story</h3>
-            {readingLoading ? (
-              <div className="text-[#0081A7] text-lg">Generating your story...</div>
+            {lessonLoading ? (
+              <div className="text-[#0081A7] text-lg">Generating your lesson...</div>
             ) : (
               <>
                 {/* Full English translation */}

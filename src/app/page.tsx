@@ -808,6 +808,16 @@ export default function Home() {
         return;
       }
       
+      if (targetPage === 10 && lessonData) {
+        // If lessonData exists but readingStarted is not set, set it
+        if (!readingStarted) {
+          setReadingStarted(true);
+          setStoryData(lessonData.story);
+          setReadingRevealed(Array(lessonData.story.story.length).fill(false));
+          setReadingShowAll(false);
+        }
+      }
+      
       setPage(targetPage);
     };
 
@@ -1460,7 +1470,7 @@ export default function Home() {
             </div>
           </div>
         )}
-        {page === 10 && readingStarted && storyData && (
+        {page === 10 && lessonData && (
           <div className="w-full max-w-4xl bg-[#FDFCDC] rounded-2xl shadow-lg p-8 flex flex-col items-center relative min-h-[400px]">
             <h3 className="text-2xl font-bold text-[#0081A7] mb-6">Read the Story</h3>
             {lessonLoading ? (
@@ -1470,14 +1480,14 @@ export default function Home() {
                 {/* Full English translation */}
                 <div className="w-full mb-8 p-4 bg-white rounded-xl border-2 border-[#FED9B7]">
                   <div className="text-sm text-[#00AFB9] font-medium mb-2">Full Translation</div>
-                  <div className="text-lg text-[#0081A7]">{storyData.sentence}</div>
+                  <div className="text-lg text-[#0081A7]">{lessonData.story.sentence}</div>
                 </div>
                 
                 {/* Story content */}
                 <div className="w-full mb-8">
                   <div className="text-sm text-[#00AFB9] font-medium mb-4">Story (Click words to reveal translations)</div>
                   <div className="flex flex-wrap gap-2 justify-center">
-                    {storyData.story.map((word, idx) => (
+                    {lessonData.story.story.map((word, idx) => (
                       <button
                         key={idx}
                         onClick={() => handleReadingReveal(idx)}

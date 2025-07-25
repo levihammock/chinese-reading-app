@@ -137,7 +137,6 @@ export default function Home() {
   const [vocab, setVocab] = useState<VocabWord[]>([]);
   const [revealed, setRevealed] = useState<boolean[]>([]);
   const [showAll, setShowAll] = useState(false);
-  const [loading, setLoading] = useState(false);
 
   // Quiz state
   const [quizStarted, setQuizStarted] = useState(false);
@@ -169,7 +168,6 @@ export default function Home() {
   const [grammarConcept, setGrammarConcept] = useState<GrammarConcept | null>(null);
   const [grammarRevealed, setGrammarRevealed] = useState<boolean[]>([]);
   const [grammarShowAll, setGrammarShowAll] = useState(false);
-  const [grammarLoading, setGrammarLoading] = useState(false);
 
   // Grammar quiz state
   const [grammarQuizStarted, setGrammarQuizStarted] = useState(false);
@@ -186,7 +184,6 @@ export default function Home() {
   const [storyData, setStoryData] = useState<StoryData | null>(null);
   const [readingRevealed, setReadingRevealed] = useState<boolean[]>([]);
   const [readingShowAll, setReadingShowAll] = useState(false);
-  const [readingLoading, setReadingLoading] = useState(false);
 
   // Unified lesson data state
   const [lessonData, setLessonData] = useState<{
@@ -965,9 +962,9 @@ export default function Home() {
             <button
               type="submit"
               className="w-full px-8 py-3 bg-gradient-to-r from-[#FED9B7] to-[#F07167] text-[#0081A7] font-semibold rounded-xl hover:from-[#F07167] hover:to-[#FED9B7] transition-all duration-200 shadow-lg hover:shadow-xl"
-              disabled={!subject.trim() || loading}
+              disabled={!subject.trim() || lessonLoading}
             >
-              {loading ? 'Loading...' : 'Start lesson'}
+              {lessonLoading ? 'Generating lesson...' : 'Start lesson'}
             </button>
           </form>
         )}

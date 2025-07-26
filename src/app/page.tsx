@@ -134,6 +134,13 @@ const generateCompleteLesson = async (skillLevel: SkillLevel, subject: string) =
         { chinese: "我们吃午饭", pinyin: "Wǒmen chī wǔfàn", english: "We eat lunch" },
         { chinese: "你读报纸", pinyin: "Nǐ dú bàozhǐ", english: "You read newspapers" }
       ],
+      writingQuiz: [
+        { english: "I like studying Chinese", chinese: "我喜欢学习中文", pinyin: "Wǒ xǐhuān xuéxí zhōngwén" },
+        { english: "You read books", chinese: "你读书", pinyin: "Nǐ dú shū" },
+        { english: "He watches movies", chinese: "他看电影", pinyin: "Tā kàn diànyǐng" },
+        { english: "She drinks coffee", chinese: "她喝咖啡", pinyin: "Tā hē kāfēi" },
+        { english: "We eat food", chinese: "我们吃饭", pinyin: "Wǒmen chī fàn" }
+      ],
       story: {
         story: [
           { chinese: "我", pinyin: "wǒ", english: "I" },
@@ -224,6 +231,11 @@ export default function Home() {
     vocabulary: VocabWord[];
     grammar: GrammarConcept;
     grammarQuiz: GrammarExample[];
+    writingQuiz: Array<{
+      english: string;
+      chinese: string;
+      pinyin: string;
+    }>;
     story: StoryData;
   } | null>(null);
   const [lessonLoading, setLessonLoading] = useState(false);
@@ -1053,10 +1065,14 @@ export default function Home() {
             const completeLesson = await generateCompleteLesson(skillLevel, subject);
             setLessonData(completeLesson);
             setShowLoadingPage(false); // Hide loading page
+            // Start writing quiz after generating lesson data
+            await handleStartWritingQuiz();
+            return;
+          } else {
+            // If lessonData exists, just start the writing quiz directly
+            await handleStartWritingQuiz();
+            return;
           }
-          // Start writing quiz
-          await handleStartWritingQuiz();
-          return;
         }
         
         if (targetPage === 12) {
@@ -1313,34 +1329,21 @@ export default function Home() {
       console.log('Starting writing quiz...');
       setWritingQuizLoading(true);
       
-      // Generate writing quiz questions using AI
-      const response = await fetch('/api/generate-writing-quiz', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          skillLevel,
-          topic: subject,
-          grammarConcept: lessonData?.grammar
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to generate writing quiz');
+      // Check if we have lessonData with writing quiz
+      if (lessonData && lessonData.writingQuiz) {
+        console.log('Using pre-generated writing quiz data...');
+        
+        setWritingQuizQuestions(lessonData.writingQuiz);
+        setWritingQuizAnswers(Array(lessonData.writingQuiz.length).fill(''));
+        setCurrentWritingQuestionIndex(0);
+        setWritingQuizResults(null);
+        setWritingQuizEvaluations([]);
+        setWritingQuizStarted(true);
+        setWritingQuizLoading(false);
+        setPage(11); // Writing quiz page
+      } else {
+        throw new Error('No writing quiz data available');
       }
-
-      const quizData = await response.json();
-      console.log('Writing quiz questions received:', quizData);
-      
-      setWritingQuizQuestions(quizData.questions);
-      setWritingQuizAnswers(Array(quizData.questions.length).fill(''));
-      setCurrentWritingQuestionIndex(0);
-      setWritingQuizResults(null);
-      setWritingQuizEvaluations([]);
-      setWritingQuizStarted(true);
-      setWritingQuizLoading(false);
-      setPage(11); // Writing quiz page
     } catch (error) {
       console.error('Error starting writing quiz:', error);
       setWritingQuizLoading(false);
@@ -2502,7 +2505,12 @@ export default function Home() {
         {page === 11 && writingQuizStarted && (
           <div className="w-full max-w-2xl bg-[#FDFCDC] rounded-2xl shadow-lg p-8 flex flex-col items-center relative min-h-[400px]">
             <h3 className="text-2xl font-bold text-[#0081A7] mb-6">Writing Quiz: Translate to Chinese</h3>
-            {writingQuizQuestions.length > 0 ? (
+            {writingQuizLoading ? (
+              <div className="text-center">
+                <div className="text-[#0081A7] text-lg mb-4">Generating your writing quiz...</div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#00AFB9] mx-auto"></div>
+              </div>
+            ) : writingQuizQuestions.length > 0 ? (
               <div className="w-full">
                 <div className="text-center mb-8">
                   <div className="text-2xl text-[#0081A7] font-bold mb-2">

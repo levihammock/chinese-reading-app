@@ -167,6 +167,13 @@ OUTPUT FORMAT (respond with ONLY this JSON structure):
       "english": "He studies Chinese"
     }
   ],
+  "writingQuiz": [
+    {
+      "english": "I like studying Chinese",
+      "chinese": "我喜欢学习中文",
+      "pinyin": "Wǒ xǐhuān xuéxí zhōngwén"
+    }
+  ],
   "story": {
     "aligned": [
       {
@@ -205,7 +212,16 @@ SPECIFIC REQUIREMENTS:
 - Each quiz question should include chinese, pinyin, and english
 - All sentences should be relevant to "${subject}" and appropriate for ${skillLevel} level
 
-4. READING STORY:
+4. WRITING QUIZ QUESTIONS:
+- Create 5 English sentences that students will translate into Chinese characters
+- Each sentence MUST use the grammar pattern: [same as grammar concept above]
+- Each sentence should be about "${subject}" specifically
+- Use vocabulary appropriate for ${skillLevel} level
+- Make sentences engaging and relevant to the topic
+- Include correct pinyin for each Chinese sentence
+- Focus on character writing practice with the grammar pattern
+
+5. READING STORY:
 - STORY LENGTH REQUIREMENT: For ${skillLevel} level, create a story with EXACTLY ${skillLevel === 'HSK5' || skillLevel === 'HSK6' ? '5-10 sentences' : '3-5 sentences'} (approximately ${config.charLimit} Chinese characters total)
 - CRITICAL: The story MUST contain ${skillLevel === 'HSK5' || skillLevel === 'HSK6' ? 'at least 5 sentences and no more than 10 sentences' : 'at least 3 sentences and no more than 5 sentences'}
 - The story MUST be about "${subject}" specifically
@@ -252,6 +268,8 @@ IMPORTANT RULES:
                 Array.isArray(lessonData.grammar.examples) &&
                 lessonData.grammarQuiz &&
                 Array.isArray(lessonData.grammarQuiz) &&
+                lessonData.writingQuiz &&
+                Array.isArray(lessonData.writingQuiz) &&
                 lessonData.story.aligned && 
                 Array.isArray(lessonData.story.aligned) &&
                 lessonData.story.sentence) {
@@ -278,10 +296,20 @@ IMPORTANT RULES:
                 continue;
               }
               
+              // Validate writing quiz count
+              const writingQuizCount = lessonData.writingQuiz.length;
+              if (writingQuizCount !== 5) {
+                console.log(`Writing quiz has ${writingQuizCount} questions, but requires exactly 5 questions. Regenerating...`);
+                lastError = `Writing quiz validation failed: got ${writingQuizCount} questions, need exactly 5`;
+                attempt++;
+                continue;
+              }
+              
               return NextResponse.json({
                 vocabulary: lessonData.vocabulary,
                 grammar: lessonData.grammar,
                 grammarQuiz: lessonData.grammarQuiz,
+                writingQuiz: lessonData.writingQuiz,
                 story: lessonData.story,
                 isAIGenerated: true
               });

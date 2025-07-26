@@ -886,6 +886,15 @@ export default function Home() {
           setShowLoadingPage(false); // Hide loading page
         }
         
+        // Reset writing quiz state when navigating to lesson overview
+        setWritingQuizStarted(false);
+        setWritingQuizQuestions([]);
+        setWritingQuizAnswers([]);
+        setCurrentWritingQuestionIndex(0);
+        setWritingQuizResults(null);
+        setWritingQuizEvaluations([]);
+        setWritingQuizLoading(false);
+        
         setCurrentLesson(lessonNumber);
         setPage(100 + lessonNumber); // Use page numbers 101, 102, 103, 104 for lesson overviews
       } catch (error) {
@@ -1033,6 +1042,29 @@ export default function Home() {
             setStoryData(lessonData.story);
             setReadingRevealed(Array(lessonData.story.aligned.length).fill(false));
             setReadingShowAll(false);
+          }
+        }
+        
+        if (targetPage === 11) {
+          // Initialize writing quiz state
+          if (!lessonData) {
+            console.log('Generating lesson for page 11...');
+            setShowLoadingPage(true); // Show loading page
+            const completeLesson = await generateCompleteLesson(skillLevel, subject);
+            setLessonData(completeLesson);
+            setShowLoadingPage(false); // Hide loading page
+          }
+          // Start writing quiz
+          await handleStartWritingQuiz();
+          return;
+        }
+        
+        if (targetPage === 12) {
+          // Writing quiz results page - should already be set up
+          if (!writingQuizResults) {
+            console.log('No writing quiz results available, redirecting to writing quiz...');
+            setPage(11);
+            return;
           }
         }
         
@@ -1250,6 +1282,190 @@ export default function Home() {
     lastDragOverTimeRef.current = 0;
     setDragged(null);
     setHoveredCard(null);
+  };
+
+  // Writing quiz state
+  const [writingQuizStarted, setWritingQuizStarted] = useState(false);
+  const [writingQuizQuestions, setWritingQuizQuestions] = useState<Array<{
+    english: string;
+    chinese: string;
+    pinyin: string;
+  }>>([]);
+  const [writingQuizAnswers, setWritingQuizAnswers] = useState<string[]>([]);
+  const [currentWritingQuestionIndex, setCurrentWritingQuestionIndex] = useState(0);
+  const [writingQuizResults, setWritingQuizResults] = useState<{
+    correct: number;
+    total: number;
+    percentage: number;
+  } | null>(null);
+  const [writingQuizEvaluations, setWritingQuizEvaluations] = useState<Array<{
+    questionIndex: number;
+    isCorrect: boolean;
+    explanation: string;
+    correctAnswer: string;
+    studentAnswer: string;
+  }>>([]);
+  const [writingQuizLoading, setWritingQuizLoading] = useState(false);
+
+  // Start writing quiz
+  const handleStartWritingQuiz = async () => {
+    try {
+      console.log('Starting writing quiz...');
+      setWritingQuizLoading(true);
+      
+      // Generate writing quiz questions using AI
+      const response = await fetch('/api/generate-writing-quiz', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          skillLevel,
+          topic: subject,
+          grammarConcept: lessonData?.grammar
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate writing quiz');
+      }
+
+      const quizData = await response.json();
+      console.log('Writing quiz questions received:', quizData);
+      
+      setWritingQuizQuestions(quizData.questions);
+      setWritingQuizAnswers(Array(quizData.questions.length).fill(''));
+      setCurrentWritingQuestionIndex(0);
+      setWritingQuizResults(null);
+      setWritingQuizEvaluations([]);
+      setWritingQuizStarted(true);
+      setWritingQuizLoading(false);
+      setPage(11); // Writing quiz page
+    } catch (error) {
+      console.error('Error starting writing quiz:', error);
+      setWritingQuizLoading(false);
+      // Fallback to simple questions
+      const fallbackQuestions = [
+        { english: "I like studying Chinese", chinese: "我喜欢学习中文", pinyin: "Wǒ xǐhuān xuéxí zhōngwén" },
+        { english: "You read books", chinese: "你读书", pinyin: "Nǐ dú shū" },
+        { english: "He watches movies", chinese: "他看电影", pinyin: "Tā kàn diànyǐng" },
+        { english: "She drinks coffee", chinese: "她喝咖啡", pinyin: "Tā hē kāfēi" },
+        { english: "We eat food", chinese: "我们吃饭", pinyin: "Wǒmen chī fàn" }
+      ];
+      setWritingQuizQuestions(fallbackQuestions);
+      setWritingQuizAnswers(Array(fallbackQuestions.length).fill(''));
+      setCurrentWritingQuestionIndex(0);
+      setWritingQuizResults(null);
+      setWritingQuizEvaluations([]);
+      setWritingQuizStarted(true);
+      setWritingQuizLoading(false);
+      setPage(11);
+    }
+  };
+
+  // Handle writing quiz answer change
+  const handleWritingAnswerChange = (answer: string) => {
+    setWritingQuizAnswers(prev => {
+      const newAnswers = [...prev];
+      newAnswers[currentWritingQuestionIndex] = answer;
+      return newAnswers;
+    });
+  };
+
+  // Handle "Not sure" button for writing quiz
+  const handleWritingNotSure = () => {
+    setWritingQuizAnswers(prev => {
+      const newAnswers = [...prev];
+      newAnswers[currentWritingQuestionIndex] = 'Not sure';
+      return newAnswers;
+    });
+  };
+
+  // Navigate to next writing question
+  const handleNextWritingQuestion = () => {
+    if (currentWritingQuestionIndex < writingQuizQuestions.length - 1) {
+      setCurrentWritingQuestionIndex(currentWritingQuestionIndex + 1);
+    }
+  };
+
+  // Navigate to previous writing question
+  const handlePreviousWritingQuestion = () => {
+    if (currentWritingQuestionIndex > 0) {
+      setCurrentWritingQuestionIndex(currentWritingQuestionIndex - 1);
+    }
+  };
+
+  // Submit writing quiz with AI evaluation
+  const handleSubmitWritingQuiz = async () => {
+    try {
+      console.log('Submitting writing quiz for AI evaluation...');
+      setWritingQuizLoading(true);
+      
+      const response = await fetch('/api/evaluate-writing-quiz', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          questions: writingQuizQuestions,
+          answers: writingQuizAnswers,
+          skillLevel,
+          topic: subject
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to evaluate writing quiz');
+      }
+
+      const evaluationData = await response.json();
+      console.log('Writing quiz evaluation received:', evaluationData);
+      
+      setWritingQuizEvaluations(evaluationData.evaluations);
+      setWritingQuizResults({
+        correct: evaluationData.summary.correctCount,
+        total: evaluationData.summary.totalCount,
+        percentage: evaluationData.summary.percentage
+      });
+      setWritingQuizLoading(false);
+      setPage(12); // Writing quiz results page
+    } catch (error) {
+      console.error('Error evaluating writing quiz:', error);
+      setWritingQuizLoading(false);
+      // Fallback to simple evaluation
+      let correct = 0;
+      writingQuizQuestions.forEach((question, index) => {
+        if (fuzzyMatch(writingQuizAnswers[index], question.chinese)) {
+          correct++;
+        }
+      });
+      
+      const percentage = Math.round((correct / writingQuizQuestions.length) * 100);
+      setWritingQuizResults({ correct, total: writingQuizQuestions.length, percentage });
+      setPage(12);
+    }
+  };
+
+  // Retry writing quiz
+  const handleWritingQuizRetry = () => {
+    setWritingQuizAnswers(Array(writingQuizQuestions.length).fill(''));
+    setCurrentWritingQuestionIndex(0);
+    setWritingQuizResults(null);
+    setWritingQuizEvaluations([]);
+    setWritingQuizLoading(false);
+    setPage(11);
+  };
+
+  // Review writing lesson
+  const handleWritingReviewLesson = () => {
+    setWritingQuizStarted(false);
+    setWritingQuizQuestions([]);
+    setWritingQuizAnswers([]);
+    setCurrentWritingQuestionIndex(0);
+    setWritingQuizResults(null);
+    setWritingQuizEvaluations([]);
+    setWritingQuizLoading(false);
+    setPage(10); // Go back to reading lesson
   };
 
   return (
@@ -2117,10 +2333,10 @@ export default function Home() {
                   <button
                     className={`px-8 py-3 bg-[#00AFB9] text-white font-semibold rounded-xl shadow-lg w-full max-w-xs text-lg transition-all duration-200
                       ${readingRevealed && readingRevealed.every(Boolean) ? 'hover:bg-[#0081A7]' : 'opacity-50 cursor-not-allowed'}`}
-                    onClick={() => setPage(1)}
+                    onClick={handleStartWritingQuiz}
                     disabled={!readingRevealed || !readingRevealed.every(Boolean)}
                   >
-                    Complete Lesson
+                    Quiz me!
                   </button>
                 </div>
               </>
@@ -2272,10 +2488,182 @@ export default function Home() {
 
         {page === 104 && currentLesson === 4 && (
           <div className="w-full max-w-4xl">
-            <h3 className="text-2xl font-bold text-[#0081A7] mb-8 text-center">Lesson 4: Writing</h3>
-            <div className="text-center">
-              <p className="text-[#00AFB9] text-lg mb-4">Writing lessons coming soon!</p>
-              <p className="text-[#0081A7]">This lesson will include writing exercises and practice.</p>
+            <div className="grid gap-6">
+              <button
+                onClick={handleStartWritingQuiz}
+                className="w-full p-6 bg-[#FDFCDC] rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 border-2 border-[#FED9B7] hover:border-[#F07167]"
+              >
+                <h4 className="text-xl font-bold text-[#0081A7] mb-2">Writing Quiz: Quiz Me!</h4>
+                <p className="text-[#00AFB9]">Translate English sentences to Chinese characters</p>
+              </button>
+            </div>
+          </div>
+        )}
+        {page === 11 && writingQuizStarted && (
+          <div className="w-full max-w-2xl bg-[#FDFCDC] rounded-2xl shadow-lg p-8 flex flex-col items-center relative min-h-[400px]">
+            <h3 className="text-2xl font-bold text-[#0081A7] mb-6">Writing Quiz: Translate to Chinese</h3>
+            {writingQuizQuestions.length > 0 ? (
+              <div className="w-full">
+                <div className="text-center mb-8">
+                  <div className="text-2xl text-[#0081A7] font-bold mb-2">
+                    {writingQuizQuestions[currentWritingQuestionIndex].english}
+                  </div>
+                  <div className="text-sm text-[#00AFB9]">
+                    Question {currentWritingQuestionIndex + 1} of {writingQuizQuestions.length}
+                  </div>
+                </div>
+                
+                <div className="mb-8">
+                  <label className="block text-lg font-semibold text-[#0081A7] mb-4">Write the Chinese translation:</label>
+                  <input
+                    type="text"
+                    value={writingQuizAnswers[currentWritingQuestionIndex]}
+                    onChange={(e) => handleWritingAnswerChange(e.target.value)}
+                    className="w-full px-6 py-4 border-2 border-[#FED9B7] rounded-xl focus:ring-2 focus:ring-[#FED9B7] focus:border-transparent transition-all duration-200 bg-white text-[#0081A7] font-medium text-lg"
+                    placeholder="Type Chinese characters here..."
+                    autoFocus
+                  />
+                </div>
+                
+                <div className="flex flex-col gap-3 mb-6">
+                  <button
+                    onClick={handleWritingNotSure}
+                    className="px-4 py-2 bg-gray-200 text-gray-500 font-medium rounded-lg hover:bg-gray-300 transition-all duration-200 text-sm self-center"
+                  >
+                    I&apos;m not sure
+                  </button>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  {currentWritingQuestionIndex > 0 && (
+                    <button
+                      className="px-6 py-3 bg-[#FED9B7] text-[#0081A7] font-semibold rounded-xl hover:bg-[#F07167] hover:text-white transition-all duration-200"
+                      onClick={handlePreviousWritingQuestion}
+                    >
+                      Back
+                    </button>
+                  )}
+                  <div className="flex-1"></div>
+                  {currentWritingQuestionIndex < writingQuizQuestions.length - 1 ? (
+                    <button
+                      className={`px-6 py-3 font-semibold rounded-xl transition-all duration-200
+                        ${writingQuizAnswers[currentWritingQuestionIndex].trim() 
+                          ? 'bg-[#00AFB9] text-white hover:bg-[#0081A7]' 
+                          : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
+                      onClick={handleNextWritingQuestion}
+                      disabled={!writingQuizAnswers[currentWritingQuestionIndex].trim()}
+                    >
+                      Next question
+                    </button>
+                  ) : (
+                    <button
+                      className="px-6 py-3 bg-[#00AFB9] text-white font-semibold rounded-xl hover:bg-[#0081A7] transition-all duration-200"
+                      onClick={handleSubmitWritingQuiz}
+                    >
+                      Submit Answers
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="text-[#0081A7] text-lg">Loading writing quiz...</div>
+            )}
+          </div>
+        )}
+        {page === 12 && writingQuizResults && (
+          <div className="w-full max-w-4xl bg-[#FDFCDC] rounded-2xl shadow-lg p-8 flex flex-col items-center relative min-h-[400px]">
+            <h3 className="text-2xl font-bold text-[#0081A7] mb-6">Writing Quiz Results</h3>
+            <div className="text-center mb-8">
+              <div className="text-3xl font-bold text-[#0081A7] mb-4">
+                {writingQuizResults.correct}/{writingQuizResults.total} correct
+              </div>
+              <div className="text-xl text-[#00AFB9] mb-6">
+                {writingQuizResults.percentage}% accuracy
+              </div>
+              
+              {/* Detailed evaluations */}
+              {writingQuizEvaluations.length > 0 && (
+                <div className="w-full mb-8">
+                  <h4 className="text-lg font-semibold text-[#0081A7] mb-4">Question Breakdown:</h4>
+                  <div className="space-y-4">
+                    {writingQuizEvaluations.map((evaluation, idx) => (
+                      <div key={idx} className={`p-4 rounded-lg border-2 ${
+                        evaluation.isCorrect 
+                          ? 'border-green-500 bg-green-50' 
+                          : 'border-red-500 bg-red-50'
+                      }`}>
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="text-lg font-semibold text-[#0081A7]">
+                            Question {idx + 1}: {writingQuizQuestions[idx]?.english}
+                          </div>
+                          <div className={`text-2xl ${evaluation.isCorrect ? 'text-green-600' : 'text-red-600'}`}>
+                            {evaluation.isCorrect ? '✓' : '✗'}
+                          </div>
+                        </div>
+                        <div className="text-sm text-[#00AFB9] mb-2">
+                          Correct: {writingQuizQuestions[idx]?.chinese} ({writingQuizQuestions[idx]?.pinyin})
+                        </div>
+                        <div className="text-sm text-gray-600 mb-2">
+                          <strong>Your answer:</strong> {evaluation.studentAnswer}
+                        </div>
+                        {!evaluation.isCorrect && (
+                          <div className="text-sm text-green-600 mb-2">
+                            <strong>Correct answer:</strong> {evaluation.correctAnswer}
+                          </div>
+                        )}
+                        <div className="text-sm text-gray-700 italic">
+                          {evaluation.explanation}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {writingQuizResults.percentage >= 90 && (
+                <div className="text-center">
+                  <div className="text-6xl mb-4">🎉</div>
+                  <div className="text-2xl font-bold text-[#0081A7] mb-6">Excellent work!</div>
+                  <div className="flex gap-4 justify-center">
+                    <button
+                      className="px-6 py-3 bg-[#FED9B7] text-[#0081A7] font-semibold rounded-xl hover:bg-[#F07167] hover:text-white transition-all duration-200"
+                      onClick={() => setPage(1)}
+                    >
+                      Start Over
+                    </button>
+                    <button
+                      className="px-6 py-3 bg-[#00AFB9] text-white font-semibold rounded-xl hover:bg-[#0081A7] transition-all duration-200"
+                      onClick={() => setPage(1)}
+                    >
+                      Complete Lesson
+                    </button>
+                  </div>
+                </div>
+              )}
+              
+              {writingQuizResults.percentage < 90 && (
+                <div className="text-center">
+                  <div className="text-6xl mb-4">😐</div>
+                  <div className="text-2xl font-bold text-[#0081A7] mb-6">Keep practicing!</div>
+                  <div className="text-lg text-[#00AFB9] mb-6">
+                    You need 90% to pass. You got {writingQuizResults.percentage}%.
+                  </div>
+                  <div className="flex gap-4 justify-center">
+                    <button
+                      className="px-6 py-3 bg-[#FED9B7] text-[#0081A7] font-semibold rounded-xl hover:bg-[#F07167] hover:text-white transition-all duration-200"
+                      onClick={handleWritingQuizRetry}
+                    >
+                      Try again
+                    </button>
+                    <button
+                      className="px-6 py-3 bg-[#00AFB9] text-white font-semibold rounded-xl hover:bg-[#0081A7] transition-all duration-200"
+                      onClick={handleWritingReviewLesson}
+                    >
+                      Review lesson
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}

@@ -365,6 +365,7 @@ export default function Home() {
     setDragged({ type, idx });
   };
   const handleDragEnd = () => {
+    console.log(`[DRAG-END] Drag ended. Current direction: ${scrollDirection}, Has interval: ${!!autoScrollInterval}`);
     cleanupAutoScroll();
   };
   const handleDragOver = (type: 'eng' | 'chi', idx: number) => {
@@ -1196,11 +1197,18 @@ export default function Home() {
   };
 
   const startAutoScroll = (direction: 'up' | 'down') => {
+    console.log(`[AUTO-SCROLL] Attempting to start scrolling ${direction}`);
+    console.log(`[AUTO-SCROLL] Current direction: ${scrollDirection}, Has interval: ${!!autoScrollInterval}`);
+    
     // Don't change direction if already scrolling in the same direction
-    if (scrollDirection === direction) return;
+    if (scrollDirection === direction) {
+      console.log(`[AUTO-SCROLL] Already scrolling ${direction}, ignoring`);
+      return;
+    }
     
     // Clear any existing interval
     if (autoScrollInterval) {
+      console.log(`[AUTO-SCROLL] Clearing existing interval`);
       clearInterval(autoScrollInterval);
     }
     
@@ -1208,12 +1216,16 @@ export default function Home() {
       handleAutoScroll(direction);
     }, 30); // Slower for more stability
     
+    console.log(`[AUTO-SCROLL] Started scrolling ${direction} with interval ${interval}`);
     setAutoScrollInterval(interval);
     setScrollDirection(direction);
   };
 
   const stopAutoScroll = () => {
+    console.log(`[AUTO-SCROLL] Stopping auto-scroll. Current direction: ${scrollDirection}, Has interval: ${!!autoScrollInterval}`);
+    
     if (autoScrollInterval) {
+      console.log(`[AUTO-SCROLL] Clearing interval ${autoScrollInterval}`);
       clearInterval(autoScrollInterval);
       setAutoScrollInterval(null);
     }
@@ -1222,7 +1234,10 @@ export default function Home() {
 
   // Comprehensive cleanup function
   const cleanupAutoScroll = () => {
+    console.log(`[CLEANUP] Cleaning up auto-scroll. Current direction: ${scrollDirection}, Has interval: ${!!autoScrollInterval}`);
+    
     if (autoScrollInterval) {
+      console.log(`[CLEANUP] Clearing interval ${autoScrollInterval}`);
       clearInterval(autoScrollInterval);
       setAutoScrollInterval(null);
     }
@@ -1473,11 +1488,16 @@ export default function Home() {
                 const topThreshold = rect.top + 100;
                 const bottomThreshold = rect.bottom - 100;
                 
+                console.log(`[DRAG-OVER] Mouse Y: ${mouseY}, Top threshold: ${topThreshold}, Bottom threshold: ${bottomThreshold}, Current direction: ${scrollDirection}`);
+                
                 if (mouseY < topThreshold) {
+                  console.log(`[DRAG-OVER] Triggering scroll up`);
                   startAutoScroll('up');
                 } else if (mouseY > bottomThreshold) {
+                  console.log(`[DRAG-OVER] Triggering scroll down`);
                   startAutoScroll('down');
                 } else {
+                  console.log(`[DRAG-OVER] Stopping scroll`);
                   stopAutoScroll();
                 }
               }}
@@ -1586,10 +1606,11 @@ export default function Home() {
               <div className="w-full">
                 {/* Pinyin Toggle and Chinese Character Row */}
                 <div className="flex items-center justify-between mb-6">
+                  <div className="flex-1"></div>
                   <div className="text-4xl text-[#0081A7] font-bold">
                     {quizQuestions[currentQuestionIndex].chinese}
                   </div>
-                  <label className="flex items-center cursor-pointer">
+                  <label className="flex items-center cursor-pointer flex-1 justify-end">
                     <span className="mr-2 text-sm text-[#0081A7] font-medium">Show Pinyin</span>
                     <div className="relative">
                       <input

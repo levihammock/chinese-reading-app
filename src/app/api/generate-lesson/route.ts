@@ -206,7 +206,8 @@ SPECIFIC REQUIREMENTS:
 - All sentences should be relevant to "${subject}" and appropriate for ${skillLevel} level
 
 4. READING STORY:
-- Create a story with ${skillLevel === 'HSK5' || skillLevel === 'HSK6' ? '5-10 sentences' : '3-5 sentences'} (approximately ${config.charLimit} Chinese characters total)
+- STORY LENGTH REQUIREMENT: For ${skillLevel} level, create a story with EXACTLY ${skillLevel === 'HSK5' || skillLevel === 'HSK6' ? '5-10 sentences' : '3-5 sentences'} (approximately ${config.charLimit} Chinese characters total)
+- CRITICAL: The story MUST contain ${skillLevel === 'HSK5' || skillLevel === 'HSK6' ? 'at least 5 sentences and no more than 10 sentences' : 'at least 3 sentences and no more than 5 sentences'}
 - The story MUST be about "${subject}" specifically
 - Use vocabulary from the provided word list
 - Include approximately ${config.vocabLimit} vocabulary words
@@ -254,6 +255,19 @@ IMPORTANT RULES:
                 lessonData.story.aligned && 
                 Array.isArray(lessonData.story.aligned) &&
                 lessonData.story.sentence) {
+              
+              // Validate story length based on HSK level
+              const storyText = lessonData.story.sentence;
+              const sentenceCount = (storyText.match(/[.!?]+/g) || []).length;
+              const minSentences = skillLevel === 'HSK5' || skillLevel === 'HSK6' ? 5 : 3;
+              const maxSentences = skillLevel === 'HSK5' || skillLevel === 'HSK6' ? 10 : 5;
+              
+              if (sentenceCount < minSentences || sentenceCount > maxSentences) {
+                console.log(`Story has ${sentenceCount} sentences, but ${skillLevel} requires ${minSentences}-${maxSentences} sentences. Regenerating...`);
+                lastError = `Story length validation failed: got ${sentenceCount} sentences, need ${minSentences}-${maxSentences} for ${skillLevel}`;
+                attempt++;
+                continue;
+              }
               
               return NextResponse.json({
                 vocabulary: lessonData.vocabulary,

@@ -93,6 +93,49 @@ const getTargetLevelWords = (skillLevel: string, subject?: string): string[] => 
   return targetLevelWords;
 };
 
+// Helper function to get topic-relevant vocabulary
+const getTopicRelevantVocabulary = (skillLevel: string, subject: string): string[] => {
+  const hskLevelMap: Record<string, number> = {
+    'HSK1': 1, 'HSK2': 2, 'HSK3': 3, 'HSK4': 4, 'HSK5': 5, 'HSK6': 6, 'HSK7': 7
+  };
+  
+  const targetHskLevel = hskLevelMap[skillLevel];
+  
+  if (!targetHskLevel) {
+    return [];
+  }
+  
+  // Define topic keywords for different subjects
+  const topicKeywords: Record<string, string[]> = {
+    'Food': ['食物', '菜', '饭', '吃', '餐厅', '厨房', '味道', '营养', '健康', '水果', '蔬菜', '肉类', '海鲜', '饮料', '咖啡', '茶', '酒', '甜点', '零食'],
+    'Travel': ['旅行', '旅游', '飞机', '火车', '酒店', '景点', '导游', '护照', '签证', '机场', '车站', '地图', '行李', '相机', '纪念品', '风景', '文化'],
+    'Technology': ['科技', '电脑', '手机', '软件', '网络', '数据', '信息', '互联网', '人工智能', '程序', '系统', '设备', '技术', '创新', '数字', '智能'],
+    'Business': ['商业', '公司', '经济', '贸易', '金融', '投资', '市场', '企业', '管理', '销售', '营销', '客户', '产品', '服务', '利润', '竞争', '合作'],
+    'Environment': ['环境', '自然', '保护', '污染', '气候', '生态', '绿色', '可持续发展', '能源', '资源', '森林', '海洋', '动物', '植物', '地球'],
+    'Education': ['教育', '学习', '学校', '大学', '老师', '学生', '课程', '知识', '技能', '考试', '成绩', '研究', '学术', '文化', '语言', '科学'],
+    'Health': ['健康', '医疗', '医生', '医院', '治疗', '药物', '疾病', '预防', '营养', '运动', '休息', '心理', '身体', '检查', '康复'],
+    'Sports': ['运动', '体育', '比赛', '训练', '团队', '胜利', '失败', '技能', '身体', '健康', '竞争', '合作', '教练', '运动员', '场地'],
+    'Music': ['音乐', '歌曲', '乐器', '演奏', '歌手', '乐队', '旋律', '节奏', '艺术', '文化', '表演', '创作', '欣赏', '古典', '流行'],
+    'Art': ['艺术', '绘画', '作品', '创作', '文化', '历史', '博物馆', '展览', '风格', '色彩', '设计', '美学', '传统', '现代', '表达']
+  };
+  
+  const relevantKeywords = topicKeywords[subject] || [];
+  
+  // Find words that match the topic keywords
+  const relevantWords = completeHSKDictionary
+    .filter(entry => 
+      entry.hskLevel === targetHskLevel && 
+      (relevantKeywords.includes(entry.chinese) || 
+       entry.english.toLowerCase().includes(subject.toLowerCase()) ||
+       relevantKeywords.some(keyword => entry.english.toLowerCase().includes(keyword.toLowerCase())))
+    )
+    .map(entry => entry.chinese);
+  
+  console.log(`Found ${relevantWords.length} topic-relevant words for "${subject}" in HSK${targetHskLevel}`);
+  
+  return relevantWords;
+};
+
 // Helper function to get allowed words for a specific HSK level (for general content)
 const getAllowedWords = (skillLevel: string): string[] => {
   // Map skill levels to HSK numbers
@@ -187,8 +230,10 @@ export async function POST(request: NextRequest) {
 
     // Get vocabulary pools for different purposes
     const targetLevelWords = getTargetLevelWords(skillLevel, subject);
+    const topicRelevantWords = getTopicRelevantVocabulary(skillLevel, subject);
     const allowedWords = getAllowedWords(skillLevel);
     console.log(`Using ${targetLevelWords.length} target-level words and ${allowedWords.length} total allowed words for ${skillLevel}`);
+    console.log(`Found ${topicRelevantWords.length} topic-relevant words for "${subject}"`);
     
     // Debug: Show vocabulary distribution
     const targetHskLevel = hskLevelMap[skillLevel];
@@ -197,6 +242,7 @@ export async function POST(request: NextRequest) {
       .map(entry => entry.chinese);
     console.log(`Vocabulary breakdown for ${skillLevel}:`);
     console.log(`- Target level (HSK${targetHskLevel}): ${targetLevelWords.length} words`);
+    console.log(`- Topic-relevant: ${topicRelevantWords.length} words`);
     console.log(`- Lower levels (HSK1-${targetHskLevel-1}): ${lowerLevelWords.length} words`);
     console.log(`- Selected from allowed words: ${allowedWords.length} words`);
 
@@ -221,17 +267,20 @@ export async function POST(request: NextRequest) {
 
     const config = hskConfig[skillLevel as keyof typeof hskConfig] || hskConfig.HSK1;
 
-    // Create vocabulary samples for the prompt (with randomization to avoid repetition)
-    const shuffledTargetWords = [...targetLevelWords].sort(() => Math.random() - 0.5);
+    // Create vocabulary samples for the prompt with topic prioritization
+    // First, prioritize topic-relevant words, then add other target-level words
+    const prioritizedTargetWords = [...topicRelevantWords, ...targetLevelWords.filter(word => !topicRelevantWords.includes(word))];
+    const shuffledTargetWords = [...prioritizedTargetWords].sort(() => Math.random() - 0.5);
     const shuffledGeneralWords = [...allowedWords].sort(() => Math.random() - 0.5);
     
-    const targetLevelSample = shuffledTargetWords.slice(0, 50).join(', '); // Increased from 30 to 50
-    const generalSample = shuffledGeneralWords.slice(0, 80).join(', '); // Increased from 50 to 80
+    const targetLevelSample = shuffledTargetWords.slice(0, 50).join(', ');
+    const generalSample = shuffledGeneralWords.slice(0, 80).join(', ');
     const remainingTargetCount = targetLevelWords.length - 50;
     const remainingGeneralCount = allowedWords.length - 80;
     
     // Debug: Show actual target-level words being provided
     console.log(`Target-level words sample (first 20): ${shuffledTargetWords.slice(0, 20).join(', ')}`);
+    console.log(`Topic-relevant words in sample: ${topicRelevantWords.slice(0, 10).join(', ')}`);
     console.log(`Target-level words count: ${targetLevelWords.length}`);
     console.log(`Randomized sample size: ${shuffledTargetWords.slice(0, 50).length}`);
     if (targetLevelWords.length < 50) {
@@ -247,6 +296,9 @@ VOCABULARY RESTRICTIONS:
 1. NEW VOCABULARY LIST (Lesson 1) - TARGET LEVEL ONLY:
 You MUST ONLY use words from the following list for the vocabulary section. These are EXCLUSIVELY from ${skillLevel} level:
 ${targetLevelSample}${remainingTargetCount > 0 ? `\n(and ${remainingTargetCount} more words from ${skillLevel} level)` : ''}
+
+TOPIC-RELEVANT VOCABULARY PRIORITY:
+The first ${topicRelevantWords.length} words in the above list are specifically related to "${subject}". You MUST prioritize these topic-relevant words when selecting vocabulary for the lesson.
 
 CRITICAL: Avoid using these very common words unless absolutely necessary: 我, 喜欢, 学习, 中文, 朋友, 快乐, 时间, 老师, 学校, 动物. Choose more diverse and interesting vocabulary from the provided list.
 
@@ -315,13 +367,13 @@ OUTPUT FORMAT (respond with ONLY this JSON structure):
 SPECIFIC REQUIREMENTS:
 
 1. VOCABULARY (10 words) - USE TARGET LEVEL ONLY:
-- Include approximately ${config.vocabLimit} vocabulary words from the TARGET LEVEL list above
+- Include exactly ${config.vocabLimit} vocabulary words from the TARGET LEVEL list above
 - ALL words must be from ${skillLevel} level vocabulary only
-- IMPORTANT: Choose a VARIETY of different words - avoid repetitive selection
-- At least 4 words should be directly related to "${subject}"
-- The remaining words should be useful, common vocabulary for ${skillLevel} level
+- CRITICAL: At least 6-8 words should be directly related to "${subject}" (prioritize the topic-relevant words from the beginning of the list)
+- The remaining 2-4 words should be useful, common vocabulary for ${skillLevel} level
 - Each word should include chinese, pinyin, and english
 - DO NOT use the same words repeatedly across different lessons
+- IMPORTANT: Choose a VARIETY of different words - avoid repetitive selection
 
 2. GRAMMAR CONCEPT - USE GENERAL VOCABULARY:
 - Choose a grammar pattern appropriate for ${skillLevel} level (${config.grammarComplexity} complexity)
@@ -359,7 +411,7 @@ SPECIFIC REQUIREMENTS:
 - Include proper Chinese punctuation (，。！？) in the story text
 
 IMPORTANT RULES:
-- For VOCABULARY section: Use ONLY words from the TARGET LEVEL list (${skillLevel} level only)
+- For VOCABULARY section: Use ONLY words from the TARGET LEVEL list (${skillLevel} level only) and prioritize topic-relevant words
 - For all other sections: Use words from the GENERAL VOCABULARY list (can include lower-level words for sentence structure)
 - Do not include any explanations, markdown, or additional text
 - Do not use backticks or code blocks

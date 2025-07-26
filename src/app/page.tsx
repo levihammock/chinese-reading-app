@@ -172,6 +172,7 @@ export default function Home() {
   const [hoveredCard, setHoveredCard] = useState<{ type: 'eng' | 'chi'; idx: number } | null>(null);
   const [autoScrollInterval, setAutoScrollInterval] = useState<NodeJS.Timeout | null>(null);
   const [scrollDirection, setScrollDirection] = useState<'up' | 'down' | null>(null);
+  const [lastDirectionChange, setLastDirectionChange] = useState<number>(0);
   const matchingGameRef = useRef<HTMLDivElement>(null);
 
   // Multiple choice quiz state
@@ -1196,8 +1197,13 @@ export default function Home() {
   };
 
   const startAutoScroll = (direction: 'up' | 'down') => {
-    // Don't change direction if already scrolling
+    const now = Date.now();
+    
+    // Don't change direction if already scrolling in the same direction
     if (scrollDirection === direction) return;
+    
+    // Prevent rapid direction changes (300ms cooldown)
+    if (scrollDirection && (now - lastDirectionChange) < 300) return;
     
     // Clear any existing interval
     if (autoScrollInterval) {
@@ -1210,6 +1216,7 @@ export default function Home() {
     
     setAutoScrollInterval(interval);
     setScrollDirection(direction);
+    setLastDirectionChange(now);
   };
 
   const stopAutoScroll = () => {
@@ -1218,6 +1225,7 @@ export default function Home() {
       setAutoScrollInterval(null);
     }
     setScrollDirection(null);
+    setLastDirectionChange(0);
   };
 
   // Comprehensive cleanup function
@@ -1227,6 +1235,7 @@ export default function Home() {
       setAutoScrollInterval(null);
     }
     setScrollDirection(null);
+    setLastDirectionChange(0);
     setDragged(null);
     setHoveredCard(null);
   };
@@ -1472,6 +1481,16 @@ export default function Home() {
                 const mouseY = e.clientY;
                 const topThreshold = rect.top + 80;
                 const bottomThreshold = rect.bottom - 80;
+                
+                // If we're already scrolling in a direction, stay in that direction
+                // until we move significantly away from the edge
+                if (scrollDirection === 'up' && mouseY < topThreshold + 40) {
+                  // Stay scrolling up if we're still near the top
+                  return;
+                } else if (scrollDirection === 'down' && mouseY > bottomThreshold - 40) {
+                  // Stay scrolling down if we're still near the bottom
+                  return;
+                }
                 
                 if (mouseY < topThreshold) {
                   startAutoScroll('up');

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
-import cedictDictionaryData from '@/data/cedict-dictionary-merged.json';
+import enhancedDictionaryData from '@/data/enhanced-dictionary-with-pinyin.json';
 
 // Type the dictionary data
 interface DictionaryEntry {
@@ -8,9 +8,11 @@ interface DictionaryEntry {
   pinyin: string;
   english: string;
   hskLevel?: number;
+  hskUsage?: string;
+  hskSource?: string;
 }
 
-const cedictDictionary = cedictDictionaryData as DictionaryEntry[];
+const enhancedDictionary = enhancedDictionaryData as DictionaryEntry[];
 
 // Helper function to extract JSON from text that might contain extra content
 const extractJSONFromText = (text: string) => {
@@ -41,17 +43,17 @@ const getTargetLevelWords = (skillLevel: string, subject?: string): string[] => 
   const targetHskLevel = hskLevelMap[skillLevel];
   
   if (!targetHskLevel) {
-    return cedictDictionary.slice(0, 200).map(entry => entry.chinese);
+    return enhancedDictionary.slice(0, 200).map(entry => entry.chinese);
   }
   
   // Get words from the target HSK level
-  let targetLevelWords = cedictDictionary
+  let targetLevelWords = enhancedDictionary
     .filter(entry => entry.hskLevel === targetHskLevel)
     .map(entry => entry.chinese);
   
   // If we have very few target-level words, expand to include some from the level below
   if (targetLevelWords.length < 100 && targetHskLevel > 1) {
-    const lowerLevelWords = cedictDictionary
+    const lowerLevelWords = enhancedDictionary
       .filter(entry => entry.hskLevel === targetHskLevel - 1)
       .map(entry => entry.chinese)
       .slice(0, 200); // Add up to 200 words from the level below
@@ -61,7 +63,7 @@ const getTargetLevelWords = (skillLevel: string, subject?: string): string[] => 
   
   // If still too few words, add some common words without HSK level
   if (targetLevelWords.length < 50) {
-    const commonWords = cedictDictionary
+    const commonWords = enhancedDictionary
       .filter(entry => !entry.hskLevel)
       .map(entry => entry.chinese)
       .slice(0, 300);
@@ -88,16 +90,16 @@ const getAllowedWords = (skillLevel: string): string[] => {
   
   if (!targetHskLevel) {
     // If no HSK level mapping, return all words (fallback)
-    return cedictDictionary.slice(0, 500).map(entry => entry.chinese);
+    return enhancedDictionary.slice(0, 500).map(entry => entry.chinese);
   }
   
   // Get words from the target HSK level (prioritize these)
-  const targetLevelWords = cedictDictionary
+  const targetLevelWords = enhancedDictionary
     .filter(entry => entry.hskLevel === targetHskLevel)
     .map(entry => entry.chinese);
   
   // Get words from lower levels (limit these to avoid too much basic vocabulary)
-  const lowerLevelWords = cedictDictionary
+  const lowerLevelWords = enhancedDictionary
     .filter(entry => entry.hskLevel && entry.hskLevel < targetHskLevel)
     .map(entry => entry.chinese);
   
@@ -110,7 +112,7 @@ const getAllowedWords = (skillLevel: string): string[] => {
   
   // If we don't have enough HSK words, add some common words without HSK level
   if (combinedWords.length < 100) {
-    const commonWords = cedictDictionary
+    const commonWords = enhancedDictionary
       .filter(entry => !entry.hskLevel)
       .map(entry => entry.chinese)
       .slice(0, 500 - combinedWords.length);
@@ -164,7 +166,7 @@ export async function POST(request: NextRequest) {
     
     // Debug: Show vocabulary distribution
     const targetHskLevel = hskLevelMap[skillLevel];
-    const lowerLevelWords = cedictDictionary
+    const lowerLevelWords = enhancedDictionary
       .filter(entry => entry.hskLevel && entry.hskLevel < targetHskLevel)
       .map(entry => entry.chinese);
     console.log(`Vocabulary breakdown for ${skillLevel}:`);

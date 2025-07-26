@@ -164,27 +164,28 @@ export default function Home() {
   const [quizStarted, setQuizStarted] = useState(false);
   const [quizMatches, setQuizMatches] = useState<(string | null)[]>([]); // index: vocab idx, value: matched english
   const [quizFeedback, setQuizFeedback] = useState<(null | 'correct' | 'incorrect')[]>([]); // index: vocab idx
-  const [dragged, setDragged] = useState<{ type: 'eng' | 'chi', idx: number } | null>(null);
+  const [dragged, setDragged] = useState<{ type: 'eng' | 'chi'; idx: number } | null>(null);
   const [quizComplete, setQuizComplete] = useState(false);
   const [congratsMsg, setCongratsMsg] = useState('');
   const congratsOptions = ['You did it!', 'Well done!', 'Good job!'];
   const [showCongrats, setShowCongrats] = useState(false);
-  const [hoveredCard, setHoveredCard] = useState<{ type: 'eng' | 'chi', idx: number } | null>(null);
+  const [hoveredCard, setHoveredCard] = useState<{ type: 'eng' | 'chi'; idx: number } | null>(null);
+  const [autoScrollInterval, setAutoScrollInterval] = useState<NodeJS.Timeout | null>(null);
+  const [scrollDirection, setScrollDirection] = useState<'up' | 'down' | null>(null);
+  const matchingGameRef = useRef<HTMLDivElement>(null);
 
   // Multiple choice quiz state
   const [multipleChoiceStarted, setMultipleChoiceStarted] = useState(false);
   const [quizQuestions, setQuizQuestions] = useState<Array<{
     chinese: string;
+    pinyin: string;
     correctAnswer: string;
     options: string[];
   }>>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<string[]>([]);
-  const [quizResults, setQuizResults] = useState<{
-    correct: number;
-    total: number;
-    percentage: number;
-  } | null>(null);
+  const [showPinyin, setShowPinyin] = useState(false);
+  const [quizResults, setQuizResults] = useState<{ correct: number; total: number; percentage: number } | null>(null);
 
   // Grammar lesson state
   const [grammarConcept, setGrammarConcept] = useState<GrammarConcept | null>(null);
@@ -264,6 +265,15 @@ export default function Home() {
       window.removeEventListener('unhandledrejection', handleUnhandledRejection);
     };
   }, []);
+
+  // Cleanup auto-scroll interval on unmount
+  React.useEffect(() => {
+    return () => {
+      if (autoScrollInterval) {
+        clearInterval(autoScrollInterval);
+      }
+    };
+  }, [autoScrollInterval]);
 
   // Handler for HSK selection
   const handleContinue = () => {
@@ -348,6 +358,12 @@ export default function Home() {
   const handleDragEnd = () => {
     setDragged(null);
     setHoveredCard(null);
+    // Clear auto-scroll interval
+    if (autoScrollInterval) {
+      clearInterval(autoScrollInterval);
+      setAutoScrollInterval(null);
+    }
+    setScrollDirection(null);
   };
   const handleDragOver = (type: 'eng' | 'chi', idx: number) => {
     setHoveredCard({ type, idx });
@@ -428,6 +444,7 @@ export default function Home() {
       
       return {
         chinese: word.chinese,
+        pinyin: word.pinyin,
         correctAnswer: word.english,
         options: allOptions
       };
@@ -1169,6 +1186,34 @@ export default function Home() {
     }
   };
 
+  const handleAutoScroll = (direction: 'up' | 'down') => {
+    if (!matchingGameRef.current) return;
+    
+    const scrollAmount = direction === 'up' ? -10 : 10;
+    matchingGameRef.current.scrollTop += scrollAmount;
+  };
+
+  const startAutoScroll = (direction: 'up' | 'down') => {
+    if (autoScrollInterval) {
+      clearInterval(autoScrollInterval);
+    }
+    
+    const interval = setInterval(() => {
+      handleAutoScroll(direction);
+    }, 16); // ~60fps
+    
+    setAutoScrollInterval(interval);
+    setScrollDirection(direction);
+  };
+
+  const stopAutoScroll = () => {
+    if (autoScrollInterval) {
+      clearInterval(autoScrollInterval);
+      setAutoScrollInterval(null);
+    }
+    setScrollDirection(null);
+  };
+
   return (
     <div className={`min-h-screen bg-white ${quicksand.className}`}>
       {error && (
@@ -1400,7 +1445,29 @@ export default function Home() {
         {page === 4 && quizStarted && (
           <div className="w-full max-w-2xl bg-[#FDFCDC] rounded-2xl shadow-lg p-8 flex flex-col items-center relative min-h-[400px]">
             <h3 className="text-2xl font-bold text-[#0081A7] mb-6">Match the English and Chinese</h3>
-            <div className="flex flex-col md:flex-row gap-8 w-full justify-center">
+            <div 
+              ref={matchingGameRef}
+              className="flex flex-col md:flex-row gap-8 w-full justify-center max-h-[400px] overflow-y-auto"
+              onDragOver={(e) => {
+                if (!dragged) return;
+                
+                const rect = e.currentTarget.getBoundingClientRect();
+                const mouseY = e.clientY;
+                const topThreshold = rect.top + 50;
+                const bottomThreshold = rect.bottom - 50;
+                
+                if (mouseY < topThreshold) {
+                  startAutoScroll('up');
+                } else if (mouseY > bottomThreshold) {
+                  startAutoScroll('down');
+                } else {
+                  stopAutoScroll();
+                }
+              }}
+              onDragLeave={() => {
+                stopAutoScroll();
+              }}
+            >
               {/* Chinese/Pinyin column */}
               <div className="flex flex-col gap-4 flex-1">
                 {vocab.map((word, idx) => {
@@ -1500,10 +1567,33 @@ export default function Home() {
             <h3 className="text-2xl font-bold text-[#0081A7] mb-6">Quiz: Guess the right translations</h3>
             {quizQuestions.length > 0 && (
               <div className="w-full">
-                <div className="text-center mb-8">
-                  <div className="text-4xl text-[#0081A7] font-bold mb-4">
-                    {quizQuestions[currentQuestionIndex].chinese}
+                {/* Pinyin Toggle */}
+                <div className="flex items-center justify-center mb-6">
+                  <label className="flex items-center cursor-pointer">
+                    <span className="mr-3 text-[#0081A7] font-medium">Show Pinyin</span>
+                    <div className="relative">
+                      <input
+                        type="checkbox"
+                        className="sr-only"
+                        checked={showPinyin}
+                        onChange={(e) => setShowPinyin(e.target.checked)}
+                      />
+                      <div className={`block w-14 h-8 rounded-full transition-colors duration-200 ${showPinyin ? 'bg-[#00AFB9]' : 'bg-gray-300'}`}>
+                        <div className={`absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform duration-200 ${showPinyin ? 'transform translate-x-6' : ''}`}></div>
+                      </div>
                     </div>
+                  </label>
+                </div>
+                
+                <div className="text-center mb-8">
+                  <div className="text-4xl text-[#0081A7] font-bold mb-2">
+                    {quizQuestions[currentQuestionIndex].chinese}
+                  </div>
+                  {showPinyin && (
+                    <div className="text-lg text-[#00AFB9] mb-4">
+                      {quizQuestions[currentQuestionIndex].pinyin}
+                    </div>
+                  )}
                   <div className="text-sm text-[#00AFB9]">
                     Question {currentQuestionIndex + 1} of {quizQuestions.length}
                   </div>

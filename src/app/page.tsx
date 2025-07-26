@@ -172,6 +172,7 @@ export default function Home() {
   const [hoveredCard, setHoveredCard] = useState<{ type: 'eng' | 'chi'; idx: number } | null>(null);
   const [autoScrollInterval, setAutoScrollInterval] = useState<NodeJS.Timeout | null>(null);
   const [scrollDirection, setScrollDirection] = useState<'up' | 'down' | null>(null);
+  const currentDirectionRef = useRef<'up' | 'down' | null>(null);
   const matchingGameRef = useRef<HTMLDivElement>(null);
 
   // Multiple choice quiz state
@@ -365,7 +366,7 @@ export default function Home() {
     setDragged({ type, idx });
   };
   const handleDragEnd = () => {
-    console.log(`[DRAG-END] Drag ended. Current direction: ${scrollDirection}, Has interval: ${!!autoScrollInterval}`);
+    console.log(`[DRAG-END] Drag ended. Current direction: ${currentDirectionRef.current}, Has interval: ${!!autoScrollInterval}`);
     cleanupAutoScroll();
   };
   const handleDragOver = (type: 'eng' | 'chi', idx: number) => {
@@ -1198,10 +1199,10 @@ export default function Home() {
 
   const startAutoScroll = (direction: 'up' | 'down') => {
     console.log(`[AUTO-SCROLL] Attempting to start scrolling ${direction}`);
-    console.log(`[AUTO-SCROLL] Current direction: ${scrollDirection}, Has interval: ${!!autoScrollInterval}`);
+    console.log(`[AUTO-SCROLL] Current direction: ${currentDirectionRef.current}, Has interval: ${!!autoScrollInterval}`);
     
     // Don't change direction if already scrolling in the same direction
-    if (scrollDirection === direction) {
+    if (currentDirectionRef.current === direction) {
       console.log(`[AUTO-SCROLL] Already scrolling ${direction}, ignoring`);
       return;
     }
@@ -1219,10 +1220,11 @@ export default function Home() {
     console.log(`[AUTO-SCROLL] Started scrolling ${direction} with interval ${interval}`);
     setAutoScrollInterval(interval);
     setScrollDirection(direction);
+    currentDirectionRef.current = direction;
   };
 
   const stopAutoScroll = () => {
-    console.log(`[AUTO-SCROLL] Stopping auto-scroll. Current direction: ${scrollDirection}, Has interval: ${!!autoScrollInterval}`);
+    console.log(`[AUTO-SCROLL] Stopping auto-scroll. Current direction: ${currentDirectionRef.current}, Has interval: ${!!autoScrollInterval}`);
     
     if (autoScrollInterval) {
       console.log(`[AUTO-SCROLL] Clearing interval ${autoScrollInterval}`);
@@ -1230,11 +1232,12 @@ export default function Home() {
       setAutoScrollInterval(null);
     }
     setScrollDirection(null);
+    currentDirectionRef.current = null;
   };
 
   // Comprehensive cleanup function
   const cleanupAutoScroll = () => {
-    console.log(`[CLEANUP] Cleaning up auto-scroll. Current direction: ${scrollDirection}, Has interval: ${!!autoScrollInterval}`);
+    console.log(`[CLEANUP] Cleaning up auto-scroll. Current direction: ${currentDirectionRef.current}, Has interval: ${!!autoScrollInterval}`);
     
     if (autoScrollInterval) {
       console.log(`[CLEANUP] Clearing interval ${autoScrollInterval}`);
@@ -1242,6 +1245,7 @@ export default function Home() {
       setAutoScrollInterval(null);
     }
     setScrollDirection(null);
+    currentDirectionRef.current = null;
     setDragged(null);
     setHoveredCard(null);
   };
@@ -1488,7 +1492,7 @@ export default function Home() {
                 const topThreshold = rect.top + 100;
                 const bottomThreshold = rect.bottom - 100;
                 
-                console.log(`[DRAG-OVER] Mouse Y: ${mouseY}, Top threshold: ${topThreshold}, Bottom threshold: ${bottomThreshold}, Current direction: ${scrollDirection}`);
+                console.log(`[DRAG-OVER] Mouse Y: ${mouseY}, Top threshold: ${topThreshold}, Bottom threshold: ${bottomThreshold}, Current direction: ${currentDirectionRef.current}`);
                 
                 if (mouseY < topThreshold) {
                   console.log(`[DRAG-OVER] Triggering scroll up`);

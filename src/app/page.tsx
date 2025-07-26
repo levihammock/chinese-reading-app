@@ -100,21 +100,14 @@ const generateCompleteLesson = async (skillLevel: SkillLevel, subject: string) =
     return data;
   } catch (error) {
     console.error('Error generating lesson:', error);
-    // Fallback lesson data
-    console.log('Using fallback lesson data');
+    // Fallback lesson data - now topic-aware
+    console.log('Using fallback lesson data for topic:', subject);
+    
+    // Create topic-specific fallback vocabulary
+    const topicVocab = getTopicFallbackVocab(subject, skillLevel);
+    
     return {
-      vocabulary: [
-        { chinese: "我", pinyin: "wǒ", english: "I" },
-        { chinese: "喜欢", pinyin: "xǐhuān", english: "like" },
-        { chinese: "学习", pinyin: "xuéxí", english: "study" },
-        { chinese: "中文", pinyin: "zhōngwén", english: "Chinese" },
-        { chinese: "朋友", pinyin: "péngyǒu", english: "friend" },
-        { chinese: "快乐", pinyin: "kuàilè", english: "happy" },
-        { chinese: "时间", pinyin: "shíjiān", english: "time" },
-        { chinese: "老师", pinyin: "lǎoshī", english: "teacher" },
-        { chinese: "学校", pinyin: "xuéxiào", english: "school" },
-        { chinese: "动物", pinyin: "dòngwù", english: "animal" },
-      ],
+      vocabulary: topicVocab,
       grammar: {
         name: "Basic Subject-Verb-Object",
         description: "Subject + Verb + Object",
@@ -142,7 +135,7 @@ const generateCompleteLesson = async (skillLevel: SkillLevel, subject: string) =
         { english: "We eat food", chinese: "我们吃饭", pinyin: "Wǒmen chī fàn" }
       ],
       story: {
-        story: [
+        aligned: [
           { chinese: "我", pinyin: "wǒ", english: "I" },
           { chinese: "喜欢", pinyin: "xǐhuān", english: "like" },
           { chinese: "学习", pinyin: "xuéxí", english: "study" },
@@ -155,6 +148,148 @@ const generateCompleteLesson = async (skillLevel: SkillLevel, subject: string) =
     };
   }
 };
+
+// Helper function to generate topic-specific fallback vocabulary
+function getTopicFallbackVocab(subject: string, skillLevel: SkillLevel): VocabWord[] {
+  const topicVocabMap: Record<string, VocabWord[]> = {
+    'Food': [
+      { chinese: "食物", pinyin: "shíwù", english: "food" },
+      { chinese: "菜", pinyin: "cài", english: "dish" },
+      { chinese: "饭", pinyin: "fàn", english: "rice/meal" },
+      { chinese: "餐厅", pinyin: "cāntīng", english: "restaurant" },
+      { chinese: "厨房", pinyin: "chúfáng", english: "kitchen" },
+      { chinese: "味道", pinyin: "wèidào", english: "taste" },
+      { chinese: "营养", pinyin: "yíngyǎng", english: "nutrition" },
+      { chinese: "健康", pinyin: "jiànkāng", english: "healthy" },
+      { chinese: "水果", pinyin: "shuǐguǒ", english: "fruit" },
+      { chinese: "蔬菜", pinyin: "shūcài", english: "vegetables" }
+    ],
+    'Travel': [
+      { chinese: "旅行", pinyin: "lǚxíng", english: "travel" },
+      { chinese: "旅游", pinyin: "lǚyóu", english: "tourism" },
+      { chinese: "飞机", pinyin: "fēijī", english: "airplane" },
+      { chinese: "火车", pinyin: "huǒchē", english: "train" },
+      { chinese: "酒店", pinyin: "jiǔdiàn", english: "hotel" },
+      { chinese: "景点", pinyin: "jǐngdiǎn", english: "scenic spot" },
+      { chinese: "导游", pinyin: "dǎoyóu", english: "tour guide" },
+      { chinese: "护照", pinyin: "hùzhào", english: "passport" },
+      { chinese: "签证", pinyin: "qiānzhèng", english: "visa" },
+      { chinese: "机场", pinyin: "jīchǎng", english: "airport" }
+    ],
+    'Technology': [
+      { chinese: "科技", pinyin: "kējì", english: "technology" },
+      { chinese: "电脑", pinyin: "diànnǎo", english: "computer" },
+      { chinese: "手机", pinyin: "shǒujī", english: "mobile phone" },
+      { chinese: "软件", pinyin: "ruǎnjiàn", english: "software" },
+      { chinese: "网络", pinyin: "wǎngluò", english: "network" },
+      { chinese: "数据", pinyin: "shùjù", english: "data" },
+      { chinese: "信息", pinyin: "xìnxī", english: "information" },
+      { chinese: "互联网", pinyin: "hùliánwǎng", english: "internet" },
+      { chinese: "程序", pinyin: "chéngxù", english: "program" },
+      { chinese: "系统", pinyin: "xìtǒng", english: "system" }
+    ],
+    'Business': [
+      { chinese: "商业", pinyin: "shāngyè", english: "business" },
+      { chinese: "公司", pinyin: "gōngsī", english: "company" },
+      { chinese: "经济", pinyin: "jīngjì", english: "economy" },
+      { chinese: "贸易", pinyin: "màoyì", english: "trade" },
+      { chinese: "金融", pinyin: "jīnróng", english: "finance" },
+      { chinese: "投资", pinyin: "tóuzī", english: "investment" },
+      { chinese: "市场", pinyin: "shìchǎng", english: "market" },
+      { chinese: "企业", pinyin: "qǐyè", english: "enterprise" },
+      { chinese: "管理", pinyin: "guǎnlǐ", english: "management" },
+      { chinese: "销售", pinyin: "xiāoshòu", english: "sales" }
+    ],
+    'Environment': [
+      { chinese: "环境", pinyin: "huánjìng", english: "environment" },
+      { chinese: "自然", pinyin: "zìrán", english: "nature" },
+      { chinese: "保护", pinyin: "bǎohù", english: "protection" },
+      { chinese: "污染", pinyin: "wūrǎn", english: "pollution" },
+      { chinese: "气候", pinyin: "qìhòu", english: "climate" },
+      { chinese: "生态", pinyin: "shēngtài", english: "ecology" },
+      { chinese: "绿色", pinyin: "lǜsè", english: "green" },
+      { chinese: "能源", pinyin: "néngyuán", english: "energy" },
+      { chinese: "资源", pinyin: "zīyuán", english: "resources" },
+      { chinese: "森林", pinyin: "sēnlín", english: "forest" }
+    ],
+    'Education': [
+      { chinese: "教育", pinyin: "jiàoyù", english: "education" },
+      { chinese: "学习", pinyin: "xuéxí", english: "study" },
+      { chinese: "学校", pinyin: "xuéxiào", english: "school" },
+      { chinese: "大学", pinyin: "dàxué", english: "university" },
+      { chinese: "老师", pinyin: "lǎoshī", english: "teacher" },
+      { chinese: "学生", pinyin: "xuésheng", english: "student" },
+      { chinese: "课程", pinyin: "kèchéng", english: "course" },
+      { chinese: "知识", pinyin: "zhīshi", english: "knowledge" },
+      { chinese: "技能", pinyin: "jìnéng", english: "skill" },
+      { chinese: "考试", pinyin: "kǎoshì", english: "exam" }
+    ],
+    'Health': [
+      { chinese: "健康", pinyin: "jiànkāng", english: "health" },
+      { chinese: "医疗", pinyin: "yīliáo", english: "medical treatment" },
+      { chinese: "医生", pinyin: "yīshēng", english: "doctor" },
+      { chinese: "医院", pinyin: "yīyuàn", english: "hospital" },
+      { chinese: "治疗", pinyin: "zhìliáo", english: "treatment" },
+      { chinese: "药物", pinyin: "yàowù", english: "medicine" },
+      { chinese: "疾病", pinyin: "jíbìng", english: "disease" },
+      { chinese: "预防", pinyin: "yùfáng", english: "prevention" },
+      { chinese: "运动", pinyin: "yùndòng", english: "exercise" },
+      { chinese: "休息", pinyin: "xiūxi", english: "rest" }
+    ],
+    'Sports': [
+      { chinese: "运动", pinyin: "yùndòng", english: "sports" },
+      { chinese: "体育", pinyin: "tǐyù", english: "physical education" },
+      { chinese: "比赛", pinyin: "bǐsài", english: "competition" },
+      { chinese: "训练", pinyin: "xùnliàn", english: "training" },
+      { chinese: "团队", pinyin: "tuánduì", english: "team" },
+      { chinese: "胜利", pinyin: "shènglì", english: "victory" },
+      { chinese: "失败", pinyin: "shībài", english: "defeat" },
+      { chinese: "技能", pinyin: "jìnéng", english: "skill" },
+      { chinese: "身体", pinyin: "shēntǐ", english: "body" },
+      { chinese: "健康", pinyin: "jiànkāng", english: "health" }
+    ],
+    'Music': [
+      { chinese: "音乐", pinyin: "yīnyuè", english: "music" },
+      { chinese: "歌曲", pinyin: "gēqǔ", english: "song" },
+      { chinese: "乐器", pinyin: "yuèqì", english: "musical instrument" },
+      { chinese: "演奏", pinyin: "yǎnzòu", english: "performance" },
+      { chinese: "歌手", pinyin: "gēshǒu", english: "singer" },
+      { chinese: "乐队", pinyin: "yuèduì", english: "band" },
+      { chinese: "旋律", pinyin: "xuánlǜ", english: "melody" },
+      { chinese: "节奏", pinyin: "jiézòu", english: "rhythm" },
+      { chinese: "艺术", pinyin: "yìshù", english: "art" },
+      { chinese: "文化", pinyin: "wénhuà", english: "culture" }
+    ],
+    'Art': [
+      { chinese: "艺术", pinyin: "yìshù", english: "art" },
+      { chinese: "绘画", pinyin: "huìhuà", english: "painting" },
+      { chinese: "作品", pinyin: "zuòpǐn", english: "work" },
+      { chinese: "创作", pinyin: "chuàngzuò", english: "creation" },
+      { chinese: "文化", pinyin: "wénhuà", english: "culture" },
+      { chinese: "历史", pinyin: "lìshǐ", english: "history" },
+      { chinese: "博物馆", pinyin: "bówùguǎn", english: "museum" },
+      { chinese: "展览", pinyin: "zhǎnlǎn", english: "exhibition" },
+      { chinese: "风格", pinyin: "fēnggé", english: "style" },
+      { chinese: "色彩", pinyin: "sècǎi", english: "color" }
+    ]
+  };
+  
+  // Get topic-specific vocabulary or fall back to generic
+  const topicVocab = topicVocabMap[subject] || [
+    { chinese: "我", pinyin: "wǒ", english: "I" },
+    { chinese: "喜欢", pinyin: "xǐhuān", english: "like" },
+    { chinese: "学习", pinyin: "xuéxí", english: "study" },
+    { chinese: "中文", pinyin: "zhōngwén", english: "Chinese" },
+    { chinese: "朋友", pinyin: "péngyǒu", english: "friend" },
+    { chinese: "快乐", pinyin: "kuàilè", english: "happy" },
+    { chinese: "时间", pinyin: "shíjiān", english: "time" },
+    { chinese: "老师", pinyin: "lǎoshī", english: "teacher" },
+    { chinese: "学校", pinyin: "xuéxiào", english: "school" },
+    { chinese: "动物", pinyin: "dòngwù", english: "animal" }
+  ];
+  
+  return topicVocab;
+}
 
 export default function Home() {
   const [page, setPage] = useState(1);

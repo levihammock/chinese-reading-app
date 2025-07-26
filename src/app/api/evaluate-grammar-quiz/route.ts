@@ -57,9 +57,9 @@ CONTEXT:
 TASK:
 Evaluate each of the student's answers and provide:
 1. Whether each answer is correct (true/false)
-2. A brief explanation for each answer
+2. A brief explanation for each answer (speaking directly to the student using "you")
 3. The correct answer if the student's answer is wrong
-4. An overall score and feedback
+4. An overall score and feedback (speaking directly to the student using "you")
 
 STUDENT ANSWERS:
 ${questions.map((q: QuizQuestion, idx: number) => 
@@ -80,7 +80,7 @@ OUTPUT FORMAT (respond with ONLY this JSON structure):
     {
       "questionIndex": 0,
       "isCorrect": true,
-      "explanation": "Correct translation of the Chinese sentence",
+      "explanation": "You correctly translated this Chinese sentence. Well done!",
       "correctAnswer": "I like cats",
       "studentAnswer": "I like cats"
     }
@@ -89,15 +89,17 @@ OUTPUT FORMAT (respond with ONLY this JSON structure):
     "correctCount": 4,
     "totalCount": 5,
     "percentage": 80,
-    "overallFeedback": "Good job! You demonstrated a solid understanding of the grammar pattern."
+    "overallFeedback": "Great work! You demonstrated a solid understanding of the grammar pattern. Keep practicing and you'll continue to improve!"
   }
 }
 
 IMPORTANT:
+- Always speak directly to the student using "you" and "your" in explanations and feedback
 - Be encouraging and constructive in your feedback
 - Provide specific explanations for incorrect answers
 - Consider the student's skill level (${skillLevel}) when evaluating
-- Focus on the grammar pattern understanding rather than perfect English`;
+- Focus on the grammar pattern understanding rather than perfect English
+- Use a warm, supportive tone as if you're speaking directly to the student`;
 
     console.log('Sending evaluation request to Claude...');
 

@@ -32,7 +32,27 @@ const extractJSONFromText = (text: string) => {
   }
 };
 
-// Helper function to get allowed words for a specific HSK level
+// Helper function to get target HSK level vocabulary only (for Lesson 1 vocabulary list)
+const getTargetLevelWords = (skillLevel: string): string[] => {
+  const hskLevelMap: Record<string, number> = {
+    'HSK1': 1, 'HSK2': 2, 'HSK3': 3, 'HSK4': 4, 'HSK5': 5, 'HSK6': 6
+  };
+  
+  const targetHskLevel = hskLevelMap[skillLevel];
+  
+  if (!targetHskLevel) {
+    return cedictDictionary.slice(0, 200).map(entry => entry.chinese);
+  }
+  
+  // Get ONLY words from the target HSK level
+  const targetLevelWords = cedictDictionary
+    .filter(entry => entry.hskLevel === targetHskLevel)
+    .map(entry => entry.chinese);
+  
+  return targetLevelWords;
+};
+
+// Helper function to get allowed words for a specific HSK level (for general content)
 const getAllowedWords = (skillLevel: string): string[] => {
   // Map skill levels to HSK numbers
   const hskLevelMap: Record<string, number> = {
@@ -51,23 +71,34 @@ const getAllowedWords = (skillLevel: string): string[] => {
     return cedictDictionary.slice(0, 500).map(entry => entry.chinese);
   }
   
-  // Filter dictionary to include words from the target level AND all lower levels
-  const filteredWords = cedictDictionary
-    .filter(entry => entry.hskLevel && entry.hskLevel <= targetHskLevel)
-    .map(entry => entry.chinese)
-    .slice(0, 500);
+  // Get words from the target HSK level (prioritize these)
+  const targetLevelWords = cedictDictionary
+    .filter(entry => entry.hskLevel === targetHskLevel)
+    .map(entry => entry.chinese);
+  
+  // Get words from lower levels (limit these to avoid too much basic vocabulary)
+  const lowerLevelWords = cedictDictionary
+    .filter(entry => entry.hskLevel && entry.hskLevel < targetHskLevel)
+    .map(entry => entry.chinese);
+  
+  // For higher levels, limit lower-level words to avoid overwhelming with basic vocabulary
+  const maxLowerLevelWords = targetHskLevel <= 2 ? 200 : 100; // More lower-level words for HSK1-2
+  const limitedLowerLevelWords = lowerLevelWords.slice(0, maxLowerLevelWords);
+  
+  // Combine words, prioritizing target level
+  const combinedWords = [...targetLevelWords, ...limitedLowerLevelWords];
   
   // If we don't have enough HSK words, add some common words without HSK level
-  if (filteredWords.length < 100) {
+  if (combinedWords.length < 100) {
     const commonWords = cedictDictionary
       .filter(entry => !entry.hskLevel)
       .map(entry => entry.chinese)
-      .slice(0, 500 - filteredWords.length);
+      .slice(0, 500 - combinedWords.length);
     
-    return [...filteredWords, ...commonWords];
+    return [...combinedWords, ...commonWords];
   }
   
-  return filteredWords;
+  return combinedWords.slice(0, 500);
 };
 
 export async function POST(request: NextRequest) {
@@ -96,9 +127,30 @@ export async function POST(request: NextRequest) {
 
     console.log('Generating complete lesson for:', { skillLevel, subject });
 
-    // Get allowed words for this skill level
+    // Map skill levels to HSK numbers (needed for debug info)
+    const hskLevelMap: Record<string, number> = {
+      'HSK1': 1,
+      'HSK2': 2,
+      'HSK3': 3,
+      'HSK4': 4,
+      'HSK5': 5,
+      'HSK6': 6
+    };
+
+    // Get vocabulary pools for different purposes
+    const targetLevelWords = getTargetLevelWords(skillLevel);
     const allowedWords = getAllowedWords(skillLevel);
-    console.log(`Using ${allowedWords.length} allowed words for ${skillLevel}`);
+    console.log(`Using ${targetLevelWords.length} target-level words and ${allowedWords.length} total allowed words for ${skillLevel}`);
+    
+    // Debug: Show vocabulary distribution
+    const targetHskLevel = hskLevelMap[skillLevel];
+    const lowerLevelWords = cedictDictionary
+      .filter(entry => entry.hskLevel && entry.hskLevel < targetHskLevel)
+      .map(entry => entry.chinese);
+    console.log(`Vocabulary breakdown for ${skillLevel}:`);
+    console.log(`- Target level (HSK${targetHskLevel}): ${targetLevelWords.length} words`);
+    console.log(`- Lower levels (HSK1-${targetHskLevel-1}): ${lowerLevelWords.length} words`);
+    console.log(`- Selected from allowed words: ${allowedWords.length} words`);
 
     // Initialize Anthropic client
     const anthropic = new Anthropic({
@@ -120,21 +172,28 @@ export async function POST(request: NextRequest) {
 
     const config = hskConfig[skillLevel as keyof typeof hskConfig] || hskConfig.HSK1;
 
-    // Create a sample of allowed words for the prompt (limit to first 50 to keep prompt manageable)
-    const sampleWords = allowedWords.slice(0, 50).join(', ');
-    const remainingCount = allowedWords.length - 50;
+    // Create vocabulary samples for the prompt
+    const targetLevelSample = targetLevelWords.slice(0, 30).join(', ');
+    const generalSample = allowedWords.slice(0, 50).join(', ');
+    const remainingTargetCount = targetLevelWords.length - 30;
+    const remainingGeneralCount = allowedWords.length - 50;
 
     const prompt = `You are a Chinese language teacher creating comprehensive lesson materials for English-speaking students preparing for the ${skillLevel} exam.
 
 TASK: Create a complete lesson about "${subject}" suitable for ${skillLevel} level Chinese learners.
 
-CRITICAL VOCABULARY RESTRICTION:
-You MUST ONLY use words from the following list. This list includes vocabulary from ${skillLevel} AND all lower HSK levels (HSK1-${skillLevel.replace('HSK', '')}). Do not use any Chinese words that are not in this list:
-${sampleWords}${remainingCount > 0 ? `\n(and ${remainingCount} more words from HSK1-${skillLevel.replace('HSK', '')} vocabulary)` : ''}
+VOCABULARY RESTRICTIONS:
+
+1. NEW VOCABULARY LIST (Lesson 1) - TARGET LEVEL ONLY:
+You MUST ONLY use words from the following list for the vocabulary section. These are EXCLUSIVELY from ${skillLevel} level:
+${targetLevelSample}${remainingTargetCount > 0 ? `\n(and ${remainingTargetCount} more words from ${skillLevel} level)` : ''}
+
+2. OTHER CONTENT (Grammar, Reading, Writing, Quizzes) - GENERAL VOCABULARY:
+For all other content (grammar examples, reading story, quiz questions), you can use words from this broader list which includes ${skillLevel} AND some lower HSK levels:
+${generalSample}${remainingGeneralCount > 0 ? `\n(and ${remainingGeneralCount} more words from HSK1-${skillLevel.replace('HSK', '')} vocabulary)` : ''}
 
 REQUIREMENTS FOR ALL SECTIONS:
 - The topic MUST be "${subject}" specifically
-- Use ONLY vocabulary from the provided word list above (HSK1-${skillLevel.replace('HSK', '')} levels)
 - Make content engaging and educational
 - Use grammar patterns appropriate for ${skillLevel} level
 - Ensure content is culturally appropriate and family-friendly
@@ -193,39 +252,42 @@ OUTPUT FORMAT (respond with ONLY this JSON structure):
 
 SPECIFIC REQUIREMENTS:
 
-1. VOCABULARY (10 words):
-- Include approximately ${config.vocabLimit} vocabulary words appropriate for ${skillLevel}
+1. VOCABULARY (10 words) - USE TARGET LEVEL ONLY:
+- Include approximately ${config.vocabLimit} vocabulary words from the TARGET LEVEL list above
+- ALL words must be from ${skillLevel} level vocabulary only
 - At least 4 words should be directly related to "${subject}"
 - The remaining words should be useful, common vocabulary for ${skillLevel} level
 - Each word should include chinese, pinyin, and english
 
-2. GRAMMAR CONCEPT:
+2. GRAMMAR CONCEPT - USE GENERAL VOCABULARY:
 - Choose a grammar pattern appropriate for ${skillLevel} level (${config.grammarComplexity} complexity)
 - Create 5 example sentences that are relevant to "${subject}"
+- Use words from the GENERAL VOCABULARY list (can include lower-level words for sentence structure)
 - Each example should include chinese, pinyin, and english
 - Examples should demonstrate the grammar pattern clearly
 - Include a brief explanation (1-2 sentences) in simple, conversational language explaining what this grammar pattern means and when to use it
 
-3. GRAMMAR QUIZ QUESTIONS:
+3. GRAMMAR QUIZ QUESTIONS - USE GENERAL VOCABULARY:
 - Create 5 DIFFERENT example sentences that use the SAME grammar pattern as above
 - These should be separate from the grammar examples (different sentences)
+- Use words from the GENERAL VOCABULARY list (can include lower-level words for sentence structure)
 - Each quiz question should include chinese, pinyin, and english
 - All sentences should be relevant to "${subject}" and appropriate for ${skillLevel} level
 
-4. WRITING QUIZ QUESTIONS:
+4. WRITING QUIZ QUESTIONS - USE GENERAL VOCABULARY:
 - Create 5 English sentences that students will translate into Chinese characters
 - Each sentence MUST use the grammar pattern: [same as grammar concept above]
 - Each sentence should be about "${subject}" specifically
-- Use vocabulary appropriate for ${skillLevel} level
+- Use words from the GENERAL VOCABULARY list (can include lower-level words for sentence structure)
 - Make sentences engaging and relevant to the topic
 - Include correct pinyin for each Chinese sentence
 - Focus on character writing practice with the grammar pattern
 
-5. READING STORY:
+5. READING STORY - USE GENERAL VOCABULARY:
 - STORY LENGTH REQUIREMENT: For ${skillLevel} level, create a story with EXACTLY ${skillLevel === 'HSK5' || skillLevel === 'HSK6' ? '5-10 sentences' : '3-5 sentences'} (approximately ${config.charLimit} Chinese characters total)
 - CRITICAL: The story MUST contain ${skillLevel === 'HSK5' || skillLevel === 'HSK6' ? 'at least 5 sentences and no more than 10 sentences' : 'at least 3 sentences and no more than 5 sentences'}
 - The story MUST be about "${subject}" specifically
-- Use vocabulary from the provided word list
+- Use words from the GENERAL VOCABULARY list (can include lower-level words for sentence structure)
 - Include approximately ${config.vocabLimit} vocabulary words
 - IMPORTANT: The story MUST include at least one instance of the grammar concept introduced in the grammar section above
 - Each object in the aligned array should represent a single word or common word pair
@@ -233,10 +295,11 @@ SPECIFIC REQUIREMENTS:
 - Include proper Chinese punctuation (，。！？) in the story text
 
 IMPORTANT RULES:
-- Use ONLY vocabulary from the provided word list (HSK1-${skillLevel.replace('HSK', '')} levels)
+- For VOCABULARY section: Use ONLY words from the TARGET LEVEL list (${skillLevel} level only)
+- For all other sections: Use words from the GENERAL VOCABULARY list (can include lower-level words for sentence structure)
 - Do not include any explanations, markdown, or additional text
 - Do not use backticks or code blocks
-- Ensure the JSON is properly formatted as an object with the three fields above
+- Ensure the JSON is properly formatted as an object with the required fields
 - Do not include any trailing commas
 - Make sure all content is specifically about "${subject}"`;
 

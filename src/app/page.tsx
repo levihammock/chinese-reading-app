@@ -172,6 +172,7 @@ export default function Home() {
   const [hoveredCard, setHoveredCard] = useState<{ type: 'eng' | 'chi'; idx: number } | null>(null);
   const [autoScrollInterval, setAutoScrollInterval] = useState<NodeJS.Timeout | null>(null);
   const [scrollDirection, setScrollDirection] = useState<'up' | 'down' | null>(null);
+  const [lastScrollChange, setLastScrollChange] = useState<number>(0);
   const matchingGameRef = useRef<HTMLDivElement>(null);
 
   // Multiple choice quiz state
@@ -1194,6 +1195,13 @@ export default function Home() {
   };
 
   const startAutoScroll = (direction: 'up' | 'down') => {
+    // Don't start if already scrolling in the same direction
+    if (scrollDirection === direction) return;
+    
+    // Debounce rapid direction changes
+    const now = Date.now();
+    if (now - lastScrollChange < 100) return; // 100ms debounce
+    
     if (autoScrollInterval) {
       clearInterval(autoScrollInterval);
     }
@@ -1204,6 +1212,7 @@ export default function Home() {
     
     setAutoScrollInterval(interval);
     setScrollDirection(direction);
+    setLastScrollChange(now);
   };
 
   const stopAutoScroll = () => {
@@ -1453,14 +1462,15 @@ export default function Home() {
                 
                 const rect = e.currentTarget.getBoundingClientRect();
                 const mouseY = e.clientY;
-                const topThreshold = rect.top + 50;
-                const bottomThreshold = rect.bottom - 50;
+                const topThreshold = rect.top + 60;
+                const bottomThreshold = rect.bottom - 60;
                 
-                if (mouseY < topThreshold) {
+                // Add a small buffer to prevent rapid switching
+                if (mouseY < topThreshold && scrollDirection !== 'up') {
                   startAutoScroll('up');
-                } else if (mouseY > bottomThreshold) {
+                } else if (mouseY > bottomThreshold && scrollDirection !== 'down') {
                   startAutoScroll('down');
-                } else {
+                } else if (mouseY >= topThreshold && mouseY <= bottomThreshold) {
                   stopAutoScroll();
                 }
               }}
@@ -1568,9 +1578,9 @@ export default function Home() {
             {quizQuestions.length > 0 && (
               <div className="w-full">
                 {/* Pinyin Toggle */}
-                <div className="flex items-center justify-center mb-6">
+                <div className="flex items-center justify-end mb-4">
                   <label className="flex items-center cursor-pointer">
-                    <span className="mr-3 text-[#0081A7] font-medium">Show Pinyin</span>
+                    <span className="mr-2 text-sm text-[#0081A7] font-medium">Show Pinyin</span>
                     <div className="relative">
                       <input
                         type="checkbox"
@@ -1578,8 +1588,8 @@ export default function Home() {
                         checked={showPinyin}
                         onChange={(e) => setShowPinyin(e.target.checked)}
                       />
-                      <div className={`block w-14 h-8 rounded-full transition-colors duration-200 ${showPinyin ? 'bg-[#00AFB9]' : 'bg-gray-300'}`}>
-                        <div className={`absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform duration-200 ${showPinyin ? 'transform translate-x-6' : ''}`}></div>
+                      <div className={`block w-10 h-6 rounded-full transition-colors duration-200 ${showPinyin ? 'bg-[#00AFB9]' : 'bg-gray-300'}`}>
+                        <div className={`absolute left-0.5 top-0.5 bg-white w-5 h-5 rounded-full transition-transform duration-200 ${showPinyin ? 'transform translate-x-4' : ''}`}></div>
                       </div>
                     </div>
                   </label>

@@ -2055,6 +2055,22 @@ export default function Home() {
                               return null;
                             }
                             
+                            // Check if this is punctuation
+                            const isPunctuation = /[，。！？、；：""''（）【】]/.test(word.chinese);
+                            
+                            if (isPunctuation) {
+                              // Render punctuation as a simple span
+                              return (
+                                <span
+                                  key={idx}
+                                  className="text-2xl text-[#0081A7] font-bold mx-1"
+                                >
+                                  {word.chinese}
+                                </span>
+                              );
+                            }
+                            
+                            // Render regular word as a button
                             return (
                               <button
                                 key={idx}

@@ -173,6 +173,11 @@ OUTPUT FORMAT (respond with ONLY this JSON structure):
         "chinese": "我",
         "pinyin": "wǒ",
         "english": "I"
+      },
+      {
+        "chinese": "，",
+        "pinyin": "",
+        "english": ","
       }
     ],
     "sentence": "I love China."
@@ -201,12 +206,14 @@ SPECIFIC REQUIREMENTS:
 - All sentences should be relevant to "${subject}" and appropriate for ${skillLevel} level
 
 4. READING STORY:
-- Create a short story between ${config.charLimit} Chinese characters
+- Create a story with 3-5 sentences (approximately ${config.charLimit} Chinese characters total)
 - The story MUST be about "${subject}" specifically
 - Use vocabulary from the provided word list
 - Include approximately ${config.vocabLimit} vocabulary words
+- IMPORTANT: The story MUST include at least one instance of the grammar concept introduced in the grammar section above
 - Each object in the aligned array should represent a single word or common word pair
 - The sentence should be a natural, fluent English translation
+- Include proper Chinese punctuation (，。！？) in the story text
 
 IMPORTANT RULES:
 - Use ONLY vocabulary from the provided word list (HSK1-${skillLevel.replace('HSK', '')} levels)

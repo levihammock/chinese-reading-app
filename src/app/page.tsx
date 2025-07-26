@@ -2032,7 +2032,7 @@ export default function Home() {
                 {/* Story content */}
                 <div className="w-full mb-8">
                   <div className="text-sm text-[#00AFB9] font-medium mb-4">Story (Click words to reveal translations)</div>
-                  <div className="flex flex-wrap gap-2 justify-center">
+                  <div className="flex flex-wrap gap-2 justify-center items-end">
                     {(() => {
                       try {
                         console.log('Rendering story content');
@@ -2059,7 +2059,7 @@ export default function Home() {
                             const isPunctuation = /[，。！？、；：""''（）【】]/.test(word.chinese);
                             
                             if (isPunctuation) {
-                              // Render punctuation as a simple span
+                              // Render punctuation as a simple span aligned with bottom of cards
                               return (
                                 <span
                                   key={idx}

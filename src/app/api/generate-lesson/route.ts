@@ -33,7 +33,7 @@ const extractJSONFromText = (text: string) => {
 };
 
 // Helper function to get target HSK level vocabulary only (for Lesson 1 vocabulary list)
-const getTargetLevelWords = (skillLevel: string): string[] => {
+const getTargetLevelWords = (skillLevel: string, subject?: string): string[] => {
   const hskLevelMap: Record<string, number> = {
     'HSK1': 1, 'HSK2': 2, 'HSK3': 3, 'HSK4': 4, 'HSK5': 5, 'HSK6': 6
   };
@@ -44,10 +44,30 @@ const getTargetLevelWords = (skillLevel: string): string[] => {
     return cedictDictionary.slice(0, 200).map(entry => entry.chinese);
   }
   
-  // Get ONLY words from the target HSK level
-  const targetLevelWords = cedictDictionary
+  // Get words from the target HSK level
+  let targetLevelWords = cedictDictionary
     .filter(entry => entry.hskLevel === targetHskLevel)
     .map(entry => entry.chinese);
+  
+  // If we have very few target-level words, expand to include some from the level below
+  if (targetLevelWords.length < 100 && targetHskLevel > 1) {
+    const lowerLevelWords = cedictDictionary
+      .filter(entry => entry.hskLevel === targetHskLevel - 1)
+      .map(entry => entry.chinese)
+      .slice(0, 200); // Add up to 200 words from the level below
+    
+    targetLevelWords = [...targetLevelWords, ...lowerLevelWords];
+  }
+  
+  // If still too few words, add some common words without HSK level
+  if (targetLevelWords.length < 50) {
+    const commonWords = cedictDictionary
+      .filter(entry => !entry.hskLevel)
+      .map(entry => entry.chinese)
+      .slice(0, 300);
+    
+    targetLevelWords = [...targetLevelWords, ...commonWords];
+  }
   
   return targetLevelWords;
 };
@@ -138,7 +158,7 @@ export async function POST(request: NextRequest) {
     };
 
     // Get vocabulary pools for different purposes
-    const targetLevelWords = getTargetLevelWords(skillLevel);
+    const targetLevelWords = getTargetLevelWords(skillLevel, subject);
     const allowedWords = getAllowedWords(skillLevel);
     console.log(`Using ${targetLevelWords.length} target-level words and ${allowedWords.length} total allowed words for ${skillLevel}`);
     
@@ -172,11 +192,22 @@ export async function POST(request: NextRequest) {
 
     const config = hskConfig[skillLevel as keyof typeof hskConfig] || hskConfig.HSK1;
 
-    // Create vocabulary samples for the prompt
-    const targetLevelSample = targetLevelWords.slice(0, 30).join(', ');
-    const generalSample = allowedWords.slice(0, 50).join(', ');
-    const remainingTargetCount = targetLevelWords.length - 30;
-    const remainingGeneralCount = allowedWords.length - 50;
+    // Create vocabulary samples for the prompt (with randomization to avoid repetition)
+    const shuffledTargetWords = [...targetLevelWords].sort(() => Math.random() - 0.5);
+    const shuffledGeneralWords = [...allowedWords].sort(() => Math.random() - 0.5);
+    
+    const targetLevelSample = shuffledTargetWords.slice(0, 50).join(', '); // Increased from 30 to 50
+    const generalSample = shuffledGeneralWords.slice(0, 80).join(', '); // Increased from 50 to 80
+    const remainingTargetCount = targetLevelWords.length - 50;
+    const remainingGeneralCount = allowedWords.length - 80;
+    
+    // Debug: Show actual target-level words being provided
+    console.log(`Target-level words sample (first 20): ${shuffledTargetWords.slice(0, 20).join(', ')}`);
+    console.log(`Target-level words count: ${targetLevelWords.length}`);
+    console.log(`Randomized sample size: ${shuffledTargetWords.slice(0, 50).length}`);
+    if (targetLevelWords.length < 50) {
+      console.log(`WARNING: Very few target-level words available (${targetLevelWords.length}). This may cause repetitive vocabulary.`);
+    }
 
     const prompt = `You are a Chinese language teacher creating comprehensive lesson materials for English-speaking students preparing for the ${skillLevel} exam.
 
@@ -187,6 +218,8 @@ VOCABULARY RESTRICTIONS:
 1. NEW VOCABULARY LIST (Lesson 1) - TARGET LEVEL ONLY:
 You MUST ONLY use words from the following list for the vocabulary section. These are EXCLUSIVELY from ${skillLevel} level:
 ${targetLevelSample}${remainingTargetCount > 0 ? `\n(and ${remainingTargetCount} more words from ${skillLevel} level)` : ''}
+
+CRITICAL: Avoid using these very common words unless absolutely necessary: 我, 喜欢, 学习, 中文, 朋友, 快乐, 时间, 老师, 学校, 动物. Choose more diverse and interesting vocabulary from the provided list.
 
 2. OTHER CONTENT (Grammar, Reading, Writing, Quizzes) - GENERAL VOCABULARY:
 For all other content (grammar examples, reading story, quiz questions), you can use words from this broader list which includes ${skillLevel} AND some lower HSK levels:
@@ -255,9 +288,11 @@ SPECIFIC REQUIREMENTS:
 1. VOCABULARY (10 words) - USE TARGET LEVEL ONLY:
 - Include approximately ${config.vocabLimit} vocabulary words from the TARGET LEVEL list above
 - ALL words must be from ${skillLevel} level vocabulary only
+- IMPORTANT: Choose a VARIETY of different words - avoid repetitive selection
 - At least 4 words should be directly related to "${subject}"
 - The remaining words should be useful, common vocabulary for ${skillLevel} level
 - Each word should include chinese, pinyin, and english
+- DO NOT use the same words repeatedly across different lessons
 
 2. GRAMMAR CONCEPT - USE GENERAL VOCABULARY:
 - Choose a grammar pattern appropriate for ${skillLevel} level (${config.grammarComplexity} complexity)

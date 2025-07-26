@@ -172,7 +172,6 @@ export default function Home() {
   const [hoveredCard, setHoveredCard] = useState<{ type: 'eng' | 'chi'; idx: number } | null>(null);
   const [autoScrollInterval, setAutoScrollInterval] = useState<NodeJS.Timeout | null>(null);
   const [scrollDirection, setScrollDirection] = useState<'up' | 'down' | null>(null);
-  const [lastDirectionChange, setLastDirectionChange] = useState<number>(0);
   const matchingGameRef = useRef<HTMLDivElement>(null);
 
   // Multiple choice quiz state
@@ -1197,13 +1196,8 @@ export default function Home() {
   };
 
   const startAutoScroll = (direction: 'up' | 'down') => {
-    const now = Date.now();
-    
     // Don't change direction if already scrolling in the same direction
     if (scrollDirection === direction) return;
-    
-    // Prevent rapid direction changes (300ms cooldown)
-    if (scrollDirection && (now - lastDirectionChange) < 300) return;
     
     // Clear any existing interval
     if (autoScrollInterval) {
@@ -1212,11 +1206,10 @@ export default function Home() {
     
     const interval = setInterval(() => {
       handleAutoScroll(direction);
-    }, 20); // Slightly slower for more stability
+    }, 30); // Slower for more stability
     
     setAutoScrollInterval(interval);
     setScrollDirection(direction);
-    setLastDirectionChange(now);
   };
 
   const stopAutoScroll = () => {
@@ -1225,7 +1218,6 @@ export default function Home() {
       setAutoScrollInterval(null);
     }
     setScrollDirection(null);
-    setLastDirectionChange(0);
   };
 
   // Comprehensive cleanup function
@@ -1235,7 +1227,6 @@ export default function Home() {
       setAutoScrollInterval(null);
     }
     setScrollDirection(null);
-    setLastDirectionChange(0);
     setDragged(null);
     setHoveredCard(null);
   };
@@ -1479,18 +1470,8 @@ export default function Home() {
                 
                 const rect = e.currentTarget.getBoundingClientRect();
                 const mouseY = e.clientY;
-                const topThreshold = rect.top + 80;
-                const bottomThreshold = rect.bottom - 80;
-                
-                // If we're already scrolling in a direction, stay in that direction
-                // until we move significantly away from the edge
-                if (scrollDirection === 'up' && mouseY < topThreshold + 40) {
-                  // Stay scrolling up if we're still near the top
-                  return;
-                } else if (scrollDirection === 'down' && mouseY > bottomThreshold - 40) {
-                  // Stay scrolling down if we're still near the bottom
-                  return;
-                }
+                const topThreshold = rect.top + 100;
+                const bottomThreshold = rect.bottom - 100;
                 
                 if (mouseY < topThreshold) {
                   startAutoScroll('up');
@@ -1603,8 +1584,11 @@ export default function Home() {
             <h3 className="text-2xl font-bold text-[#0081A7] mb-6">Quiz: Guess the right translations</h3>
             {quizQuestions.length > 0 && (
               <div className="w-full">
-                {/* Pinyin Toggle */}
-                <div className="flex items-center justify-end mb-4">
+                {/* Pinyin Toggle and Chinese Character Row */}
+                <div className="flex items-center justify-between mb-6">
+                  <div className="text-4xl text-[#0081A7] font-bold">
+                    {quizQuestions[currentQuestionIndex].chinese}
+                  </div>
                   <label className="flex items-center cursor-pointer">
                     <span className="mr-2 text-sm text-[#0081A7] font-medium">Show Pinyin</span>
                     <div className="relative">
@@ -1621,15 +1605,14 @@ export default function Home() {
                   </label>
                 </div>
                 
-                <div className="text-center mb-8">
-                  <div className="text-4xl text-[#0081A7] font-bold mb-2">
-                    {quizQuestions[currentQuestionIndex].chinese}
+                {/* Pinyin Display */}
+                {showPinyin && (
+                  <div className="text-lg text-[#00AFB9] mb-4 text-center">
+                    {quizQuestions[currentQuestionIndex].pinyin}
                   </div>
-                  {showPinyin && (
-                    <div className="text-lg text-[#00AFB9] mb-4">
-                      {quizQuestions[currentQuestionIndex].pinyin}
-                    </div>
-                  )}
+                )}
+                
+                <div className="text-center mb-8">
                   <div className="text-sm text-[#00AFB9]">
                     Question {currentQuestionIndex + 1} of {quizQuestions.length}
                   </div>

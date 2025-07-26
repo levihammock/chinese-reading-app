@@ -172,7 +172,6 @@ export default function Home() {
   const [hoveredCard, setHoveredCard] = useState<{ type: 'eng' | 'chi'; idx: number } | null>(null);
   const [autoScrollInterval, setAutoScrollInterval] = useState<NodeJS.Timeout | null>(null);
   const [scrollDirection, setScrollDirection] = useState<'up' | 'down' | null>(null);
-  const [lastScrollChange, setLastScrollChange] = useState<number>(0);
   const matchingGameRef = useRef<HTMLDivElement>(null);
 
   // Multiple choice quiz state
@@ -275,7 +274,6 @@ export default function Home() {
         setAutoScrollInterval(null);
       }
       setScrollDirection(null);
-      setLastScrollChange(0);
     };
   }, [autoScrollInterval, page]); // Add page dependency to cleanup on navigation
 
@@ -1198,24 +1196,20 @@ export default function Home() {
   };
 
   const startAutoScroll = (direction: 'up' | 'down') => {
-    // Don't start if already scrolling in the same direction
+    // Don't change direction if already scrolling
     if (scrollDirection === direction) return;
     
-    // Debounce rapid direction changes
-    const now = Date.now();
-    if (now - lastScrollChange < 100) return; // 100ms debounce
-    
+    // Clear any existing interval
     if (autoScrollInterval) {
       clearInterval(autoScrollInterval);
     }
     
     const interval = setInterval(() => {
       handleAutoScroll(direction);
-    }, 16); // ~60fps
+    }, 20); // Slightly slower for more stability
     
     setAutoScrollInterval(interval);
     setScrollDirection(direction);
-    setLastScrollChange(now);
   };
 
   const stopAutoScroll = () => {
@@ -1224,7 +1218,6 @@ export default function Home() {
       setAutoScrollInterval(null);
     }
     setScrollDirection(null);
-    setLastScrollChange(0);
   };
 
   // Comprehensive cleanup function
@@ -1234,7 +1227,6 @@ export default function Home() {
       setAutoScrollInterval(null);
     }
     setScrollDirection(null);
-    setLastScrollChange(0);
     setDragged(null);
     setHoveredCard(null);
   };
@@ -1478,15 +1470,14 @@ export default function Home() {
                 
                 const rect = e.currentTarget.getBoundingClientRect();
                 const mouseY = e.clientY;
-                const topThreshold = rect.top + 60;
-                const bottomThreshold = rect.bottom - 60;
+                const topThreshold = rect.top + 80;
+                const bottomThreshold = rect.bottom - 80;
                 
-                // Add a small buffer to prevent rapid switching
-                if (mouseY < topThreshold && scrollDirection !== 'up') {
+                if (mouseY < topThreshold) {
                   startAutoScroll('up');
-                } else if (mouseY > bottomThreshold && scrollDirection !== 'down') {
+                } else if (mouseY > bottomThreshold) {
                   startAutoScroll('down');
-                } else if (mouseY >= topThreshold && mouseY <= bottomThreshold) {
+                } else {
                   stopAutoScroll();
                 }
               }}

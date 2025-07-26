@@ -1,0 +1,28 @@
+{
+  "totalEntries": 12713,
+  "hskLevelStats": {
+    "1": 514,
+    "2": 902,
+    "3": 1066,
+    "4": 1161,
+    "5": 983,
+    "6": 1087,
+    "7": 5531
+  },
+  "sourceStats": {
+    "CompleteHSK": 11470,
+    "Enhanced": 257,
+    "HSK3_Alt": 1
+  },
+  "priorityStats": {
+    "very_high": 3636,
+    "high": 495,
+    "standard": 7595,
+    "common": 987
+  },
+  "pinyinCoverage": {
+    "yes": 12660,
+    "no": 53
+  },
+  "timestamp": "2025-07-26T21:38:40.033Z"
+}

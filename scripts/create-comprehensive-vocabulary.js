@@ -1,0 +1,229 @@
+const fs = require('fs');
+const path = require('path');
+
+// Paths
+const practicalDictPath = path.join(__dirname, '../src/data/practical-hsk-dictionary.json');
+const outputPath = path.join(__dirname, '../src/data/comprehensive-dictionary.json');
+
+console.log('Creating comprehensive vocabulary dictionary...');
+
+// Read existing practical dictionary
+const practicalDictionary = JSON.parse(fs.readFileSync(practicalDictPath, 'utf8'));
+
+// Enhanced HSK vocabulary with better level mappings
+const enhancedHSKVocabulary = {
+  // HSK 1 - Most basic and essential words
+  'HSK1': [
+    // Pronouns
+    '我', '你', '他', '她', '它', '我们', '你们', '他们', '她们', '它们',
+    // Basic verbs
+    '是', '有', '在', '去', '来', '看', '听', '说', '读', '写', '学', '教', '买', '卖', '给', '拿', '放', '开', '关', '找', '见',
+    // Basic adjectives
+    '好', '大', '小', '多', '少', '新', '老', '高', '低', '长', '短', '快', '慢', '热', '冷', '红', '白', '黑', '黄', '蓝', '绿',
+    // Numbers
+    '一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '百', '千', '万',
+    // Time
+    '年', '月', '日', '天', '星期', '小时', '分钟', '秒', '早上', '中午', '下午', '晚上', '夜里',
+    // Family
+    '爸爸', '妈妈', '哥哥', '姐姐', '弟弟', '妹妹', '儿子', '女儿', '爷爷', '奶奶',
+    // Food
+    '饭', '菜', '肉', '鱼', '鸡', '蛋', '牛奶', '面包', '水果', '苹果', '香蕉',
+    // Places
+    '家', '学校', '医院', '商店', '餐厅', '公园', '图书馆', '博物馆',
+    // Common objects
+    '书', '笔', '纸', '桌子', '椅子', '门', '窗', '车', '房子', '房间',
+    // Basic adverbs
+    '很', '不', '也', '都', '非常', '特别', '比较', '稍微',
+    // Basic conjunctions
+    '和', '因为', '所以', '但是', '如果', '虽然', '而且', '或者', '还是',
+    // Measure words
+    '个', '只', '条', '张', '本', '支', '双', '对', '套', '件',
+    // Question words
+    '什么', '谁', '哪里', '什么时候', '为什么', '怎么', '多少', '几个',
+    // Demonstratives
+    '这', '那', '这里', '那里', '这个', '那个', '这些', '那些',
+    // Other common words
+    '人', '朋友', '工作', '学习', '生活', '时间', '地方', '事情', '问题', '答案', '方法', '计划'
+  ],
+  
+  // HSK 2 - More intermediate vocabulary
+  'HSK2': [
+    // More complex verbs
+    '工作', '学习', '生活', '帮助', '保护', '照顾', '关心', '爱护', '尊重', '信任', '理解', '原谅', '感谢', '道歉', '祝贺', '祝福',
+    '希望', '梦想', '要求', '建议', '意见', '想法', '观点', '态度', '性格', '习惯', '爱好', '兴趣', '特长', '能力', '水平', '成绩',
+    '进步', '发展', '变化', '改善', '提高', '增加', '减少', '扩大', '缩小', '加强', '减弱', '开始', '结束', '继续', '停止', '完成',
+    '实现', '达到', '获得', '失去', '保持', '维持', '改变', '影响', '决定', '选择', '比较', '分析', '研究', '调查', '检查', '测试',
+    '考试', '练习', '复习', '预习', '作业', '功课', '课程', '专业', '学科',
+    // More complex nouns
+    '机会', '经验', '知识', '文化', '历史', '社会', '经济', '政治', '科技', '环境', '健康', '安全', '质量', '价格', '服务', '产品',
+    '市场', '公司', '企业', '政府', '大学', '老师', '学生', '同事', '邻居', '医生', '警察', '司机', '工人', '农民', '商人', '艺术家',
+    '科学家', '工程师', '经理', '老板', '员工', '家庭', '父母', '孩子', '妻子', '丈夫', '外公', '外婆', '叔叔', '阿姨', '舅舅', '姑姑',
+    '表弟', '表妹', '堂兄', '堂姐',
+    // More food and drink
+    '食物', '饮料', '蔬菜', '肉类', '海鲜', '主食', '小吃', '零食', '甜点', '咖啡', '茶', '酒', '水', '果汁', '豆浆', '粥', '面条',
+    '米饭', '饺子', '包子', '馒头', '蛋糕', '饼干', '糖果', '巧克力', '冰淇淋',
+    // Weather and seasons
+    '天气', '温度', '季节', '春天', '夏天', '秋天', '冬天', '晴天', '阴天', '雨天', '雪天', '风', '雨', '雪', '太阳', '月亮', '星星', '云', '雾', '雷', '电',
+    // Transportation
+    '交通', '汽车', '火车', '飞机', '轮船', '自行车', '摩托车', '公交车', '地铁', '出租车', '步行', '跑步',
+    // Activities
+    '游泳', '打球', '跳舞', '唱歌', '画画', '拍照', '旅游', '参观', '购物', '吃饭', '睡觉', '洗澡', '刷牙', '洗脸', '穿衣', '脱衣',
+    '洗衣服', '打扫', '整理', '修理', '安装', '建造', '设计', '制作', '生产', '销售', '购买', '租用', '借用', '归还', '赠送', '接受',
+    '拒绝', '同意', '反对', '支持',
+    // Media and communication
+    '文学', '艺术', '音乐', '电影', '电视', '广播', '报纸', '杂志', '书籍', '文章', '故事', '小说', '诗歌', '散文', '评论', '报道',
+    '新闻', '广告', '通知', '公告', '信件', '邮件', '电话', '短信', '微信', '网络',
+    // Technology
+    '电脑', '手机', '平板', '相机', '电视', '音响', '空调', '冰箱', '洗衣机', '微波炉', '电饭煲', '热水器', '电灯',
+    // Furniture and objects
+    '家具', '桌子', '椅子', '沙发', '床', '柜子', '书架', '衣柜', '鞋柜', '茶几', '装饰', '植物', '花卉', '树木', '草地', '花园',
+    '广场', '街道', '道路', '桥梁', '隧道', '建筑', '房屋', '公寓', '别墅', '办公室', '会议室', '教室', '游泳池', '健身房',
+    '咖啡厅', '酒吧', '酒店', '宾馆', '诊所', '药店', '银行', '邮局', '警察局', '消防局', '法院', '监狱', '机场', '火车站', '汽车站', '码头', '港口'
+  ],
+  
+  // HSK 3 - Advanced intermediate vocabulary
+  'HSK3': [
+    // Management and leadership
+    '管理', '领导', '组织', '安排', '计划', '准备', '考虑', '思考', '分析', '研究', '调查', '检查', '测试', '评估', '评价', '判断',
+    '决定', '选择', '比较', '竞争', '合作', '交流', '沟通', '表达', '说明', '解释', '介绍', '推荐', '建议', '提醒', '警告', '批评',
+    '表扬', '鼓励', '支持', '帮助', '协助', '配合', '参与', '加入', '离开', '退出', '放弃', '坚持', '继续', '保持', '维持', '保护',
+    '维护', '修理', '改善', '提高', '增强', '加强', '扩大', '增加', '减少', '降低', '缩小', '减弱', '发展', '进步', '成长', '成熟',
+    '成功', '失败', '胜利', '赢', '输', '获得', '得到', '取得', '赢得', '失去', '丢掉', '浪费', '节省', '节约', '消费', '投资',
+    '赚钱', '花钱', '存钱', '借钱', '还钱', '赔钱', '亏钱', '购买', '销售', '交易', '买卖', '交换', '赠送', '接受', '拒绝', '同意',
+    '反对', '支持', '赞成', '喜欢', '讨厌', '爱', '恨', '关心', '忽视', '重视', '轻视', '尊重', '侮辱', '信任', '怀疑', '相信',
+    '不相信', '理解', '误解', '明白', '糊涂', '清楚', '模糊', '准确', '错误', '正确', '对', '错', '好', '坏', '优秀', '糟糕',
+    '完美', '缺陷', '优点', '缺点', '长处', '短处', '强', '弱', '大', '小', '高', '低', '长', '短', '宽', '窄', '厚', '薄', '重', '轻',
+    '快', '慢', '早', '晚', '新', '旧', '年轻', '年老', '现代', '古代', '传统', '先进', '落后', '发达', '不发达', '富裕', '贫穷',
+    '健康', '生病', '安全', '危险', '和平', '战争', '友好', '敌对', '和谐', '冲突', '稳定', '动荡', '平静', '混乱', '整洁', '脏乱',
+    '安静', '吵闹', '热闹', '冷清', '繁忙', '空闲', '紧张', '放松', '快乐', '悲伤', '高兴', '难过', '兴奋', '沮丧', '激动', '平静',
+    '愤怒', '温和', '热情', '冷淡', '友好', '冷漠', '善良', '邪恶', '诚实', '虚伪', '勇敢', '胆小', '坚强', '软弱', '独立', '依赖',
+    '自信', '自卑', '乐观', '悲观', '积极', '消极', '主动', '被动', '认真', '马虎', '仔细', '粗心', '耐心', '急躁', '细心', '勤奋',
+    '懒惰', '努力', '懈怠', '坚持', '放弃', '聪明', '愚蠢', '智慧', '无知', '有经验', '无经验', '熟练', '生疏', '专业', '业余',
+    '正式', '非正式', '公开', '秘密', '明显', '隐蔽', '直接', '间接', '简单', '复杂', '容易', '困难', '方便', '麻烦', '便宜', '昂贵',
+    '免费', '收费', '公开', '私人', '公共', '个人', '集体', '团队', '组织', '国家', '国际', '国内', '全球', '本地', '全国', '全省',
+    '全市', '全县', '全乡', '全村', '全世界', '全中国', '全亚洲', '全欧洲', '全美洲', '全非洲', '全大洋洲', '全南极洲'
+  ],
+  
+  // HSK 4 - Advanced vocabulary
+  'HSK4': [
+    // Business and economics
+    '经济', '政治', '文化', '社会', '科技', '教育', '医疗', '法律', '军事', '外交', '贸易', '金融', '投资', '保险', '房地产', '制造业',
+    '服务业', '农业', '工业', '商业', '旅游业', '娱乐业', '媒体', '出版', '广告', '营销', '销售', '采购', '物流', '运输', '通信',
+    '互联网', '软件', '硬件', '数据', '信息', '知识', '技能', '能力', '素质', '品德', '道德', '伦理', '哲学', '宗教', '信仰',
+    '价值观', '人生观', '世界观', '方法论', '理论', '实践', '经验', '教训', '成就', '贡献', '影响', '作用', '意义', '价值',
+    '重要性', '必要性', '可能性', '可行性', '有效性', '效率', '效果', '结果', '后果', '功能', '用途', '目的', '目标', '方向',
+    '道路', '途径', '方法', '手段', '工具', '设备', '设施', '资源', '材料', '原料', '产品', '商品', '货物', '物品', '东西', '事物',
+    '现象', '情况', '状况', '状态', '形势', '局面', '环境', '条件', '背景', '基础', '前提', '要求', '标准', '规范', '规则', '制度',
+    '政策', '法规', '条例', '规定', '条款', '细则', '说明', '解释', '定义', '概念', '术语', '词汇', '语言', '文字', '符号', '标记',
+    '标志', '象征', '代表', '体现', '反映', '表现', '显示', '表明', '证明', '证实', '确认', '认定', '认为', '觉得', '感到', '感觉',
+    '感受', '体验', '经历', '过程', '阶段', '时期', '时代', '年代', '世纪', '千年', '百年', '十年', '一年', '半年', '季度', '月份',
+    '秒钟', '瞬间', '时刻', '时候', '日期', '日子', '今天', '昨天', '明天', '前天', '后天', '凌晨', '早晨', '傍晚', '深夜', '午夜',
+    '黎明', '黄昏', '日出', '日落', '春季', '夏季', '秋季', '冬季', '一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月',
+    '九月', '十月', '十一月', '十二月', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日', '周末', '工作日',
+    '假期', '节日', '生日', '纪念日', '结婚纪念日', '毕业纪念日', '开业纪念日', '成立纪念日', '解放纪念日', '国庆节', '春节',
+    '中秋节', '端午节', '清明节', '重阳节', '元宵节', '劳动节', '儿童节', '教师节', '护士节', '医生节', '警察节', '军人节',
+    '母亲节', '父亲节', '情人节', '圣诞节', '元旦', '除夕', '大年初一', '正月十五', '五月初五', '七月初七', '八月十五', '九月初九',
+    '腊月二十三', '腊月二十四', '腊月二十五', '腊月二十六', '腊月二十七', '腊月二十八', '腊月二十九', '腊月三十', '大年三十',
+    '小年', '祭灶', '扫房', '贴春联', '放鞭炮', '吃年夜饭', '守岁', '拜年', '压岁钱', '红包', '年货', '年画', '年糕', '饺子', '汤圆',
+    '月饼', '粽子', '腊八粥', '春卷', '糖瓜', '糖葫芦', '爆米花', '瓜子', '花生', '核桃', '杏仁', '开心果', '腰果', '松子', '榛子',
+    '栗子', '枣', '葡萄', '苹果', '梨', '桃', '杏', '李子', '樱桃', '草莓', '蓝莓', '黑莓', '树莓', '桑葚', '无花果', '石榴', '柿子',
+    '橙子', '橘子', '柚子', '柠檬', '青柠', '金橘', '蜜橘', '砂糖橘', '脐橙', '血橙', '葡萄柚'
+  ]
+};
+
+// Create comprehensive dictionary
+const comprehensiveDictionary = [];
+
+// Add enhanced HSK vocabulary first (highest priority)
+for (const [level, words] of Object.entries(enhancedHSKVocabulary)) {
+  const hskLevel = parseInt(level.replace('HSK', ''));
+  for (const word of words) {
+    // Find the word in the practical dictionary
+    const existingEntry = practicalDictionary.find(entry => entry.chinese === word);
+    if (existingEntry) {
+      comprehensiveDictionary.push({
+        ...existingEntry,
+        hskLevel: hskLevel,
+        hskSource: 'Enhanced',
+        priority: 'very_high'
+      });
+    } else {
+      // Create new entry for enhanced word
+      comprehensiveDictionary.push({
+        chinese: word,
+        pinyin: '', // Will need to be filled
+        english: `[Enhanced ${level} word]`,
+        hskLevel: hskLevel,
+        hskSource: 'Enhanced',
+        priority: 'very_high'
+      });
+    }
+  }
+}
+
+// Add remaining practical dictionary entries
+for (const entry of practicalDictionary) {
+  if (!comprehensiveDictionary.find(p => p.chinese === entry.chinese)) {
+    comprehensiveDictionary.push({
+      ...entry,
+      priority: entry.priority || 'standard'
+    });
+  }
+}
+
+// Statistics
+const hskLevelStats = {};
+const sourceStats = {};
+const priorityStats = {};
+
+for (const entry of comprehensiveDictionary) {
+  if (entry.hskLevel) {
+    hskLevelStats[entry.hskLevel] = (hskLevelStats[entry.hskLevel] || 0) + 1;
+  }
+  if (entry.hskSource) {
+    sourceStats[entry.hskSource] = (sourceStats[entry.hskSource] || 0) + 1;
+  }
+  if (entry.priority) {
+    priorityStats[entry.priority] = (priorityStats[entry.priority] || 0) + 1;
+  }
+}
+
+console.log('\n=== COMPREHENSIVE DICTIONARY STATISTICS ===');
+console.log(`Total entries: ${comprehensiveDictionary.length}`);
+
+console.log('\nHSK Level Distribution:');
+for (const [level, count] of Object.entries(hskLevelStats).sort()) {
+  console.log(`  HSK ${level}: ${count} words`);
+}
+
+console.log('\nSource Distribution:');
+for (const [source, count] of Object.entries(sourceStats)) {
+  console.log(`  ${source}: ${count} words`);
+}
+
+console.log('\nPriority Distribution:');
+for (const [priority, count] of Object.entries(priorityStats)) {
+  console.log(`  ${priority}: ${count} words`);
+}
+
+// Write comprehensive dictionary
+fs.writeFileSync(outputPath, JSON.stringify(comprehensiveDictionary, null, 2), 'utf8');
+console.log(`\nComprehensive dictionary written to: ${outputPath}`);
+
+// Create summary
+const summary = {
+  totalEntries: comprehensiveDictionary.length,
+  hskLevelStats,
+  sourceStats,
+  priorityStats,
+  timestamp: new Date().toISOString()
+};
+
+fs.writeFileSync(
+  path.join(__dirname, '../src/data/comprehensive-dictionary-summary.json'), 
+  JSON.stringify(summary, null, 2), 
+  'utf8'
+);
+
+console.log('\n=== COMPREHENSIVE DICTIONARY COMPLETE ===');
+console.log('Enhanced vocabulary with better HSK mappings is ready!'); 

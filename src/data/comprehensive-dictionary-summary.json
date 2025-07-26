@@ -1,0 +1,25 @@
+{
+  "totalEntries": 12218,
+  "hskLevelStats": {
+    "1": 513,
+    "2": 902,
+    "3": 1063,
+    "4": 1161,
+    "5": 982,
+    "6": 1084,
+    "7": 5526
+  },
+  "sourceStats": {
+    "Enhanced": 1067,
+    "Practical": 39,
+    "HSK3_Alt": 15,
+    "HSK3": 10110
+  },
+  "priorityStats": {
+    "very_high": 1067,
+    "high": 39,
+    "standard": 10125,
+    "common": 987
+  },
+  "timestamp": "2025-07-26T21:34:24.659Z"
+}

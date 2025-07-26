@@ -1548,12 +1548,8 @@ export default function Home() {
                       </button>
                     ) : (
                       <button
-                        className={`px-6 py-3 font-semibold rounded-xl transition-all duration-200
-                          ${selectedAnswers.every(answer => answer !== '') 
-                            ? 'bg-[#00AFB9] text-white hover:bg-[#0081A7]' 
-                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
+                        className="px-6 py-3 bg-[#00AFB9] text-white font-semibold rounded-xl hover:bg-[#0081A7] transition-all duration-200"
                         onClick={handleSubmitQuiz}
-                        disabled={!selectedAnswers.every(answer => answer !== '')}
                       >
                         Submit Answers
                       </button>
@@ -1982,7 +1978,6 @@ export default function Home() {
         {/* Lesson Overview Pages */}
         {page === 101 && currentLesson === 1 && (
           <div className="w-full max-w-4xl">
-            <h3 className="text-2xl font-bold text-[#0081A7] mb-8 text-center">Lesson 1: Vocabulary</h3>
             <div className="grid gap-6">
               <button
                 onClick={() => setPage(3)}
@@ -2026,7 +2021,6 @@ export default function Home() {
 
         {page === 102 && currentLesson === 2 && (
           <div className="w-full max-w-4xl">
-            <h3 className="text-2xl font-bold text-[#0081A7] mb-8 text-center">Lesson 2: Grammar</h3>
             <div className="grid gap-6">
               <button
                 onClick={() => setPage(7)}
@@ -2058,7 +2052,6 @@ export default function Home() {
 
         {page === 103 && currentLesson === 3 && (
           <div className="w-full max-w-4xl">
-            <h3 className="text-2xl font-bold text-[#0081A7] mb-8 text-center">Lesson 3: Reading</h3>
             <div className="grid gap-6">
               <button
                 onClick={() => {

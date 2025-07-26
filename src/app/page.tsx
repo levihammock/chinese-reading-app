@@ -173,6 +173,7 @@ export default function Home() {
   const [autoScrollInterval, setAutoScrollInterval] = useState<NodeJS.Timeout | null>(null);
   const [scrollDirection, setScrollDirection] = useState<'up' | 'down' | null>(null);
   const currentDirectionRef = useRef<'up' | 'down' | null>(null);
+  const lastDragOverTimeRef = useRef<number>(0);
   const matchingGameRef = useRef<HTMLDivElement>(null);
 
   // Multiple choice quiz state
@@ -1246,6 +1247,7 @@ export default function Home() {
     }
     setScrollDirection(null);
     currentDirectionRef.current = null;
+    lastDragOverTimeRef.current = 0;
     setDragged(null);
     setHoveredCard(null);
   };
@@ -1487,12 +1489,29 @@ export default function Home() {
               onDragOver={(e) => {
                 if (!dragged) return;
                 
+                // Throttle drag over events (50ms)
+                const now = Date.now();
+                if (now - lastDragOverTimeRef.current < 50) {
+                  return;
+                }
+                lastDragOverTimeRef.current = now;
+                
                 const rect = e.currentTarget.getBoundingClientRect();
                 const mouseY = e.clientY;
                 const topThreshold = rect.top + 100;
                 const bottomThreshold = rect.bottom - 100;
                 
                 console.log(`[DRAG-OVER] Mouse Y: ${mouseY}, Top threshold: ${topThreshold}, Bottom threshold: ${bottomThreshold}, Current direction: ${currentDirectionRef.current}`);
+                
+                // If already scrolling in the correct direction, don't do anything
+                if (mouseY < topThreshold && currentDirectionRef.current === 'up') {
+                  console.log(`[DRAG-OVER] Already scrolling up, no action needed`);
+                  return;
+                }
+                if (mouseY > bottomThreshold && currentDirectionRef.current === 'down') {
+                  console.log(`[DRAG-OVER] Already scrolling down, no action needed`);
+                  return;
+                }
                 
                 if (mouseY < topThreshold) {
                   console.log(`[DRAG-OVER] Triggering scroll up`);

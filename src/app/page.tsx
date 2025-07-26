@@ -2012,15 +2012,15 @@ export default function Home() {
                 <div className="flex flex-col gap-4 w-full">
                   {grammarConcept.examples.map((example, idx) => (
                     <div key={idx} className="flex items-center gap-6 w-full">
-                      <div className="flex flex-col items-start min-w-[200px] flex-shrink-0">
+                      <div className="flex flex-col items-start w-1/2 min-w-[200px] flex-shrink-0">
                         <span className="text-xl text-[#0081A7] font-bold">{example.chinese}</span>
                         <span className="text-[#00AFB9] text-sm">{example.pinyin}</span>
                       </div>
-                      <div className="flex-1 flex justify-start">
+                      <div className="flex-1 flex justify-start w-1/2">
                         <button
                           type="button"
-                          className="px-6 py-3 rounded-lg bg-[#FED9B7] text-[#F07167] font-semibold text-base focus:outline-none focus:ring-2 focus:ring-[#F07167] transition-all duration-200 flex items-center justify-center text-center"
-                          style={{ minWidth: 200, minHeight: 60 }}
+                          className="px-6 py-3 rounded-lg bg-[#FED9B7] text-[#F07167] font-semibold text-base focus:outline-none focus:ring-2 focus:ring-[#F07167] transition-all duration-200 flex items-center justify-center text-center w-full"
+                          style={{ minHeight: 60 }}
                           onClick={() => handleGrammarReveal(idx)}
                           disabled={grammarRevealed[idx] || grammarShowAll}
                         >

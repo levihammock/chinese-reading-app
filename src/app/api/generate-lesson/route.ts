@@ -269,6 +269,15 @@ IMPORTANT RULES:
                 continue;
               }
               
+              // Validate grammar examples count
+              const grammarExamplesCount = lessonData.grammar.examples.length;
+              if (grammarExamplesCount !== 5) {
+                console.log(`Grammar has ${grammarExamplesCount} examples, but requires exactly 5 examples. Regenerating...`);
+                lastError = `Grammar examples validation failed: got ${grammarExamplesCount} examples, need exactly 5`;
+                attempt++;
+                continue;
+              }
+              
               return NextResponse.json({
                 vocabulary: lessonData.vocabulary,
                 grammar: lessonData.grammar,

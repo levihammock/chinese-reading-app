@@ -37,7 +37,7 @@ const extractJSONFromText = (text: string) => {
 // Helper function to get target HSK level vocabulary only (for Lesson 1 vocabulary list)
 const getTargetLevelWords = (skillLevel: string, subject?: string): string[] => {
   const hskLevelMap: Record<string, number> = {
-    'HSK1': 1, 'HSK2': 2, 'HSK3': 3, 'HSK4': 4, 'HSK5': 5, 'HSK6': 6
+    'HSK1': 1, 'HSK2': 2, 'HSK3': 3, 'HSK4': 4, 'HSK5': 5, 'HSK6': 6, 'HSK7': 7
   };
   
   const targetHskLevel = hskLevelMap[skillLevel];
@@ -46,27 +46,31 @@ const getTargetLevelWords = (skillLevel: string, subject?: string): string[] => 
     return enhancedDictionary.slice(0, 200).map(entry => entry.chinese);
   }
   
-  // Get words from the target HSK level
+  // Get words from the target HSK level ONLY
   let targetLevelWords = enhancedDictionary
     .filter(entry => entry.hskLevel === targetHskLevel)
     .map(entry => entry.chinese);
   
-  // If we have very few target-level words, expand to include some from the level below
-  if (targetLevelWords.length < 100 && targetHskLevel > 1) {
+  console.log(`Found ${targetLevelWords.length} words for HSK${targetHskLevel} level`);
+  
+  // Only fall back to lower levels if we have extremely few words (< 20)
+  if (targetLevelWords.length < 20 && targetHskLevel > 1) {
+    console.log(`WARNING: Very few HSK${targetHskLevel} words (${targetLevelWords.length}), adding some HSK${targetHskLevel - 1} words`);
     const lowerLevelWords = enhancedDictionary
       .filter(entry => entry.hskLevel === targetHskLevel - 1)
       .map(entry => entry.chinese)
-      .slice(0, 200); // Add up to 200 words from the level below
+      .slice(0, 100); // Add up to 100 words from the level below
     
     targetLevelWords = [...targetLevelWords, ...lowerLevelWords];
   }
   
-  // If still too few words, add some common words without HSK level
-  if (targetLevelWords.length < 50) {
+  // Only add common words if we still have extremely few words (< 10)
+  if (targetLevelWords.length < 10) {
+    console.log(`WARNING: Still very few words (${targetLevelWords.length}), adding some common words`);
     const commonWords = enhancedDictionary
       .filter(entry => !entry.hskLevel)
       .map(entry => entry.chinese)
-      .slice(0, 300);
+      .slice(0, 100);
     
     targetLevelWords = [...targetLevelWords, ...commonWords];
   }
@@ -83,7 +87,8 @@ const getAllowedWords = (skillLevel: string): string[] => {
     'HSK3': 3,
     'HSK4': 4,
     'HSK5': 5,
-    'HSK6': 6
+    'HSK6': 6,
+    'HSK7': 7
   };
   
   const targetHskLevel = hskLevelMap[skillLevel];
@@ -156,7 +161,8 @@ export async function POST(request: NextRequest) {
       'HSK3': 3,
       'HSK4': 4,
       'HSK5': 5,
-      'HSK6': 6
+      'HSK6': 6,
+      'HSK7': 7
     };
 
     // Get vocabulary pools for different purposes
@@ -189,7 +195,8 @@ export async function POST(request: NextRequest) {
       HSK3: { vocabLimit: 10, charLimit: '120-200', grammarComplexity: 'intermediate' },
       HSK4: { vocabLimit: 10, charLimit: '200-350', grammarComplexity: 'intermediate' },
       HSK5: { vocabLimit: 10, charLimit: '300-450', grammarComplexity: 'advanced' },
-      HSK6: { vocabLimit: 10, charLimit: '400-600', grammarComplexity: 'advanced' }
+      HSK6: { vocabLimit: 10, charLimit: '400-600', grammarComplexity: 'advanced' },
+      HSK7: { vocabLimit: 10, charLimit: '500-800', grammarComplexity: 'advanced' }
     };
 
     const config = hskConfig[skillLevel as keyof typeof hskConfig] || hskConfig.HSK1;

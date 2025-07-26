@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
-import enhancedDictionaryData from '@/data/enhanced-dictionary-with-pinyin.json';
+import practicalDictionaryData from '@/data/practical-hsk-dictionary.json';
 
 // Type the dictionary data
 interface DictionaryEntry {
@@ -10,9 +10,10 @@ interface DictionaryEntry {
   hskLevel?: number;
   hskUsage?: string;
   hskSource?: string;
+  priority?: string;
 }
 
-const enhancedDictionary = enhancedDictionaryData as DictionaryEntry[];
+const practicalDictionary = practicalDictionaryData as DictionaryEntry[];
 
 // Helper function to extract JSON from text that might contain extra content
 const extractJSONFromText = (text: string) => {
@@ -43,20 +44,28 @@ const getTargetLevelWords = (skillLevel: string, subject?: string): string[] => 
   const targetHskLevel = hskLevelMap[skillLevel];
   
   if (!targetHskLevel) {
-    return enhancedDictionary.slice(0, 200).map(entry => entry.chinese);
+    return practicalDictionary.slice(0, 200).map(entry => entry.chinese);
   }
   
   // Get words from the target HSK level ONLY
-  let targetLevelWords = enhancedDictionary
+  let targetLevelWords = practicalDictionary
     .filter(entry => entry.hskLevel === targetHskLevel)
     .map(entry => entry.chinese);
   
-  console.log(`Found ${targetLevelWords.length} words for HSK${targetHskLevel} level`);
+  // Prioritize high-priority practical words
+  const highPriorityWords = practicalDictionary
+    .filter(entry => entry.hskLevel === targetHskLevel && entry.priority === 'high')
+    .map(entry => entry.chinese);
+  
+  // Put high-priority words first
+  targetLevelWords = [...highPriorityWords, ...targetLevelWords.filter(word => !highPriorityWords.includes(word))];
+  
+  console.log(`Found ${targetLevelWords.length} words for HSK${targetHskLevel} level (${highPriorityWords.length} high-priority)`);
   
   // Only fall back to lower levels if we have extremely few words (< 20)
   if (targetLevelWords.length < 20 && targetHskLevel > 1) {
     console.log(`WARNING: Very few HSK${targetHskLevel} words (${targetLevelWords.length}), adding some HSK${targetHskLevel - 1} words`);
-    const lowerLevelWords = enhancedDictionary
+    const lowerLevelWords = practicalDictionary
       .filter(entry => entry.hskLevel === targetHskLevel - 1)
       .map(entry => entry.chinese)
       .slice(0, 100); // Add up to 100 words from the level below
@@ -67,7 +76,7 @@ const getTargetLevelWords = (skillLevel: string, subject?: string): string[] => 
   // Only add common words if we still have extremely few words (< 10)
   if (targetLevelWords.length < 10) {
     console.log(`WARNING: Still very few words (${targetLevelWords.length}), adding some common words`);
-    const commonWords = enhancedDictionary
+    const commonWords = practicalDictionary
       .filter(entry => !entry.hskLevel)
       .map(entry => entry.chinese)
       .slice(0, 100);
@@ -95,16 +104,21 @@ const getAllowedWords = (skillLevel: string): string[] => {
   
   if (!targetHskLevel) {
     // If no HSK level mapping, return all words (fallback)
-    return enhancedDictionary.slice(0, 500).map(entry => entry.chinese);
+    return practicalDictionary.slice(0, 500).map(entry => entry.chinese);
   }
   
   // Get words from the target HSK level (prioritize these)
-  const targetLevelWords = enhancedDictionary
+  const targetLevelWords = practicalDictionary
     .filter(entry => entry.hskLevel === targetHskLevel)
     .map(entry => entry.chinese);
   
+  // Prioritize high-priority practical words
+  const highPriorityWords = practicalDictionary
+    .filter(entry => entry.hskLevel === targetHskLevel && entry.priority === 'high')
+    .map(entry => entry.chinese);
+  
   // Get words from lower levels (limit these to avoid too much basic vocabulary)
-  const lowerLevelWords = enhancedDictionary
+  const lowerLevelWords = practicalDictionary
     .filter(entry => entry.hskLevel && entry.hskLevel < targetHskLevel)
     .map(entry => entry.chinese);
   
@@ -112,12 +126,12 @@ const getAllowedWords = (skillLevel: string): string[] => {
   const maxLowerLevelWords = targetHskLevel <= 2 ? 200 : 100; // More lower-level words for HSK1-2
   const limitedLowerLevelWords = lowerLevelWords.slice(0, maxLowerLevelWords);
   
-  // Combine words, prioritizing target level
-  const combinedWords = [...targetLevelWords, ...limitedLowerLevelWords];
+  // Combine words, prioritizing high-priority words first, then target level, then lower levels
+  const combinedWords = [...highPriorityWords, ...targetLevelWords.filter(word => !highPriorityWords.includes(word)), ...limitedLowerLevelWords];
   
   // If we don't have enough HSK words, add some common words without HSK level
   if (combinedWords.length < 100) {
-    const commonWords = enhancedDictionary
+    const commonWords = practicalDictionary
       .filter(entry => !entry.hskLevel)
       .map(entry => entry.chinese)
       .slice(0, 500 - combinedWords.length);
@@ -172,7 +186,7 @@ export async function POST(request: NextRequest) {
     
     // Debug: Show vocabulary distribution
     const targetHskLevel = hskLevelMap[skillLevel];
-    const lowerLevelWords = enhancedDictionary
+    const lowerLevelWords = practicalDictionary
       .filter(entry => entry.hskLevel && entry.hskLevel < targetHskLevel)
       .map(entry => entry.chinese);
     console.log(`Vocabulary breakdown for ${skillLevel}:`);

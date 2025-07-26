@@ -267,14 +267,24 @@ export default function Home() {
     };
   }, []);
 
-  // Cleanup auto-scroll interval on unmount
+  // Cleanup auto-scroll interval on unmount and page changes
   React.useEffect(() => {
     return () => {
       if (autoScrollInterval) {
         clearInterval(autoScrollInterval);
+        setAutoScrollInterval(null);
       }
+      setScrollDirection(null);
+      setLastScrollChange(0);
     };
-  }, [autoScrollInterval]);
+  }, [autoScrollInterval, page]); // Add page dependency to cleanup on navigation
+
+  // Cleanup auto-scroll when page changes
+  React.useEffect(() => {
+    if (page !== 4) { // If not on matching game page
+      cleanupAutoScroll();
+    }
+  }, [page]);
 
   // Handler for HSK selection
   const handleContinue = () => {
@@ -357,14 +367,7 @@ export default function Home() {
     setDragged({ type, idx });
   };
   const handleDragEnd = () => {
-    setDragged(null);
-    setHoveredCard(null);
-    // Clear auto-scroll interval
-    if (autoScrollInterval) {
-      clearInterval(autoScrollInterval);
-      setAutoScrollInterval(null);
-    }
-    setScrollDirection(null);
+    cleanupAutoScroll();
   };
   const handleDragOver = (type: 'eng' | 'chi', idx: number) => {
     setHoveredCard({ type, idx });
@@ -1221,6 +1224,19 @@ export default function Home() {
       setAutoScrollInterval(null);
     }
     setScrollDirection(null);
+    setLastScrollChange(0);
+  };
+
+  // Comprehensive cleanup function
+  const cleanupAutoScroll = () => {
+    if (autoScrollInterval) {
+      clearInterval(autoScrollInterval);
+      setAutoScrollInterval(null);
+    }
+    setScrollDirection(null);
+    setLastScrollChange(0);
+    setDragged(null);
+    setHoveredCard(null);
   };
 
   return (

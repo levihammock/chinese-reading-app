@@ -546,8 +546,8 @@ IMPORTANT RULES:
           } else {
             throw new Error('Unexpected content type from Node.js SDK');
           }
-        } catch (nodeError: any) {
-          console.log('Node.js SDK failed, trying curl fallback:', nodeError.message);
+        } catch (nodeError: unknown) {
+          console.log('Node.js SDK failed, trying curl fallback:', (nodeError as Error).message);
           
           // Fallback to curl
           responseText = await makeAnthropicCallWithCurl(prompt, apiKey);

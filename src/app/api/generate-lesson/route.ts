@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import completeHSKDictionaryData from '@/data/complete-hsk-dictionary.json';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
 
 // Type the dictionary data
 interface DictionaryEntry {
@@ -34,12 +38,104 @@ const extractJSONFromText = (text: string) => {
         return JSON.parse(jsonMatch[0]);
       } catch (parseError) {
         console.error('Failed to parse extracted JSON:', parseError);
-        return null;
+        // Try to fix common JSON issues
+        const fixedJson = fixCommonJsonIssues(jsonMatch[0]);
+        try {
+          return JSON.parse(fixedJson);
+        } catch (finalError) {
+          console.error('Failed to parse fixed JSON:', finalError);
+          return null;
+        }
       }
     }
     return null;
   }
 };
+
+// Helper function to fix common JSON formatting issues
+const fixCommonJsonIssues = (jsonString: string): string => {
+  let fixed = jsonString;
+  
+  // Fix missing commas between array elements
+  fixed = fixed.replace(/"\s*}\s*"/g, '",\n"');
+  fixed = fixed.replace(/"\s*]\s*"/g, '",\n"');
+  
+  // Fix missing commas between object properties
+  fixed = fixed.replace(/"\s*}\s*"/g, '",\n"');
+  
+  // Fix unclosed quotes
+  fixed = fixed.replace(/"([^"]*)$/gm, '"$1"');
+  
+  // Fix trailing commas
+  fixed = fixed.replace(/,(\s*[}\]])/g, '$1');
+  
+  // Fix missing closing brackets
+  const openBraces = (fixed.match(/\{/g) || []).length;
+  const closeBraces = (fixed.match(/\}/g) || []).length;
+  const openBrackets = (fixed.match(/\[/g) || []).length;
+  const closeBrackets = (fixed.match(/\]/g) || []).length;
+  
+  // Add missing closing braces
+  for (let i = 0; i < openBraces - closeBraces; i++) {
+    fixed += '}';
+  }
+  
+  // Add missing closing brackets
+  for (let i = 0; i < openBrackets - closeBrackets; i++) {
+    fixed += ']';
+  }
+  
+  return fixed;
+};
+
+// Fallback function using curl when Node.js SSL fails
+async function makeAnthropicCallWithCurl(prompt: string, apiKey: string) {
+  try {
+    const requestBody = JSON.stringify({
+      model: 'claude-4-sonnet-20250514',
+      max_tokens: 5000,
+      messages: [
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+    });
+
+    const { stdout, stderr } = await execAsync(
+      `curl -s -X POST "https://api.anthropic.com/v1/messages" \
+        -H "Content-Type: application/json" \
+        -H "anthropic-version: 2023-06-01" \
+        -H "x-api-key: ${apiKey}" \
+        -d '${requestBody.replace(/'/g, "'\"'\"'")}'`
+    );
+
+    if (stderr) {
+      console.error('Curl stderr:', stderr);
+    }
+
+    // Parse the curl response to extract the text content
+    try {
+      const response = JSON.parse(stdout);
+      if (response.content && Array.isArray(response.content) && response.content[0] && response.content[0].text) {
+        console.log('Token usage (curl):', {
+          inputTokens: response.usage?.input_tokens,
+          outputTokens: response.usage?.output_tokens,
+          totalTokens: response.usage?.input_tokens + response.usage?.output_tokens
+        });
+        return response.content[0].text;
+      } else {
+        throw new Error('Unexpected response format from curl');
+      }
+    } catch (parseError) {
+      console.error('Failed to parse curl response:', parseError);
+      throw parseError;
+    }
+  } catch (error) {
+    console.error('Curl fallback failed:', error);
+    throw error;
+  }
+}
 
 // Helper function to get target HSK level vocabulary only (for Lesson 1 vocabulary list)
 const getTargetLevelWords = (skillLevel: string, subject?: string): string[] => {
@@ -251,6 +347,7 @@ export async function POST(request: NextRequest) {
       apiKey: apiKey,
       defaultHeaders: {
         'User-Agent': 'Chinese-Reading-App/1.0',
+        'anthropic-version': '2023-06-01',
       },
     });
 
@@ -305,12 +402,6 @@ CRITICAL: Avoid using these very common words unless absolutely necessary: 我, 
 2. OTHER CONTENT (Grammar, Reading, Writing, Quizzes) - GENERAL VOCABULARY:
 For all other content (grammar examples, reading story, quiz questions), you can use words from this broader list which includes ${skillLevel} AND some lower HSK levels:
 ${generalSample}${remainingGeneralCount > 0 ? `\n(and ${remainingGeneralCount} more words from HSK1-${skillLevel.replace('HSK', '')} vocabulary)` : ''}
-
-REQUIREMENTS FOR ALL SECTIONS:
-- The topic MUST be "${subject}" specifically
-- Make content engaging and educational
-- Use grammar patterns appropriate for ${skillLevel} level
-- Ensure content is culturally appropriate and family-friendly
 
 OUTPUT FORMAT (respond with ONLY this JSON structure):
 {
@@ -377,21 +468,24 @@ SPECIFIC REQUIREMENTS:
 
 2. GRAMMAR CONCEPT - USE GENERAL VOCABULARY:
 - Choose a grammar pattern appropriate for ${skillLevel} level (${config.grammarComplexity} complexity)
-- Create 5 example sentences that are relevant to "${subject}"
+- CRITICAL: Create EXACTLY 5 example sentences that are relevant to "${subject}"
+- CRITICAL: You MUST include exactly 5 examples - no more, no less
 - Use words from the GENERAL VOCABULARY list (can include lower-level words for sentence structure)
 - Each example should include chinese, pinyin, and english
 - Examples should demonstrate the grammar pattern clearly
 - Include a brief explanation (1-2 sentences) in simple, conversational language explaining what this grammar pattern means and when to use it
 
 3. GRAMMAR QUIZ QUESTIONS - USE GENERAL VOCABULARY:
-- Create 5 DIFFERENT example sentences that use the SAME grammar pattern as above
+- CRITICAL: Create EXACTLY 5 DIFFERENT example sentences that use the SAME grammar pattern as above
+- CRITICAL: You MUST include exactly 5 questions - no more, no less
 - These should be separate from the grammar examples (different sentences)
 - Use words from the GENERAL VOCABULARY list (can include lower-level words for sentence structure)
 - Each quiz question should include chinese, pinyin, and english
 - All sentences should be relevant to "${subject}" and appropriate for ${skillLevel} level
 
 4. WRITING QUIZ QUESTIONS - USE GENERAL VOCABULARY:
-- Create 5 English sentences that students will translate into Chinese characters
+- CRITICAL: Create EXACTLY 5 English sentences that students will translate into Chinese characters
+- CRITICAL: You MUST include exactly 5 questions - no more, no less
 - Each sentence MUST use the grammar pattern: [same as grammar concept above]
 - Each sentence should be about "${subject}" specifically
 - Use words from the GENERAL VOCABULARY list (can include lower-level words for sentence structure)
@@ -400,8 +494,8 @@ SPECIFIC REQUIREMENTS:
 - Focus on character writing practice with the grammar pattern
 
 5. READING STORY - USE GENERAL VOCABULARY:
-- STORY LENGTH REQUIREMENT: For ${skillLevel} level, create a story with EXACTLY ${skillLevel === 'HSK5' || skillLevel === 'HSK6' ? '5-10 sentences' : '3-5 sentences'} (approximately ${config.charLimit} Chinese characters total)
-- CRITICAL: The story MUST contain ${skillLevel === 'HSK5' || skillLevel === 'HSK6' ? 'at least 5 sentences and no more than 10 sentences' : 'at least 3 sentences and no more than 5 sentences'}
+- CRITICAL STORY LENGTH: You MUST create EXACTLY ${skillLevel === 'HSK5' || skillLevel === 'HSK6' ? '5-10' : '3-5'} sentences for ${skillLevel}
+- CRITICAL: Count your sentences carefully - if you generate fewer than ${skillLevel === 'HSK5' || skillLevel === 'HSK6' ? '5' : '3'} sentences, your response will be rejected
 - The story MUST be about "${subject}" specifically
 - Use words from the GENERAL VOCABULARY list (can include lower-level words for sentence structure)
 - Include approximately ${config.vocabLimit} vocabulary words
@@ -426,80 +520,108 @@ IMPORTANT RULES:
     let lastError = null;
     while (attempt < maxRetries) {
       try {
-        const message = await anthropic.messages.create({
-          model: 'claude-3-5-sonnet-20241022',
-          max_tokens: 2000,
-          messages: [
-            {
-              role: 'user',
-              content: prompt,
-            },
-          ],
-        });
+        let responseText: string;
+        
+        try {
+          // Try Node.js SDK first
+          const message = await anthropic.messages.create({
+            model: 'claude-4-sonnet-20250514',
+            max_tokens: 5000,
+            messages: [
+              {
+                role: 'user',
+                content: prompt,
+              },
+            ],
+          });
 
-        const content = message.content[0];
-        if (content.type === 'text') {
-          const lessonData = extractJSONFromText(content.text);
-          if (lessonData && lessonData.vocabulary && lessonData.grammar && lessonData.grammarQuiz && lessonData.story) {
-            // Validate the structure
-            if (Array.isArray(lessonData.vocabulary) && 
-                lessonData.grammar.examples && 
-                Array.isArray(lessonData.grammar.examples) &&
-                lessonData.grammarQuiz &&
-                Array.isArray(lessonData.grammarQuiz) &&
-                lessonData.writingQuiz &&
-                Array.isArray(lessonData.writingQuiz) &&
-                lessonData.story.aligned && 
-                Array.isArray(lessonData.story.aligned) &&
-                lessonData.story.sentence) {
-              
-              // Validate story length based on HSK level
-              const storyText = lessonData.story.sentence;
-              const sentenceCount = (storyText.match(/[.!?]+/g) || []).length;
-              const minSentences = skillLevel === 'HSK5' || skillLevel === 'HSK6' ? 5 : 3;
-              const maxSentences = skillLevel === 'HSK5' || skillLevel === 'HSK6' ? 10 : 5;
-              
-              if (sentenceCount < minSentences || sentenceCount > maxSentences) {
-                console.log(`Story has ${sentenceCount} sentences, but ${skillLevel} requires ${minSentences}-${maxSentences} sentences. Regenerating...`);
-                lastError = `Story length validation failed: got ${sentenceCount} sentences, need ${minSentences}-${maxSentences} for ${skillLevel}`;
-                attempt++;
-                continue;
-              }
-              
-              // Validate grammar examples count
-              const grammarExamplesCount = lessonData.grammar.examples.length;
-              if (grammarExamplesCount !== 5) {
-                console.log(`Grammar has ${grammarExamplesCount} examples, but requires exactly 5 examples. Regenerating...`);
-                lastError = `Grammar examples validation failed: got ${grammarExamplesCount} examples, need exactly 5`;
-                attempt++;
-                continue;
-              }
-              
-              // Validate writing quiz count
-              const writingQuizCount = lessonData.writingQuiz.length;
-              if (writingQuizCount !== 5) {
-                console.log(`Writing quiz has ${writingQuizCount} questions, but requires exactly 5 questions. Regenerating...`);
-                lastError = `Writing quiz validation failed: got ${writingQuizCount} questions, need exactly 5`;
-                attempt++;
-                continue;
-              }
-              
-              return NextResponse.json({
-                vocabulary: lessonData.vocabulary,
-                grammar: lessonData.grammar,
-                grammarQuiz: lessonData.grammarQuiz,
-                writingQuiz: lessonData.writingQuiz,
-                story: lessonData.story,
-                isAIGenerated: true
-              });
-            } else {
-              lastError = 'AI response missing required arrays or fields.';
-            }
+          const content = message.content[0];
+          if (content.type === 'text') {
+            responseText = content.text;
+            console.log('Token usage (Node.js SDK):', {
+              inputTokens: message.usage?.input_tokens,
+              outputTokens: message.usage?.output_tokens,
+              totalTokens: message.usage?.input_tokens + message.usage?.output_tokens
+            });
           } else {
-            lastError = 'AI response missing vocabulary, grammar, grammarQuiz, or story sections.';
+            throw new Error('Unexpected content type from Node.js SDK');
+          }
+        } catch (nodeError: any) {
+          console.log('Node.js SDK failed, trying curl fallback:', nodeError.message);
+          
+          // Fallback to curl
+          responseText = await makeAnthropicCallWithCurl(prompt, apiKey);
+          console.log('Curl response length:', responseText.length);
+          console.log('Note: Token usage not available for curl fallback');
+        }
+
+        const lessonData = extractJSONFromText(responseText);
+        console.log('Raw AI response (first 1000 chars):', responseText.substring(0, 1000));
+        console.log('Extracted lesson data:', lessonData ? 'Success' : 'Failed');
+        if (lessonData) {
+          console.log('Lesson data keys:', Object.keys(lessonData));
+          console.log('Has vocabulary:', !!lessonData.vocabulary);
+          console.log('Has grammar:', !!lessonData.grammar);
+          console.log('Has grammarQuiz:', !!lessonData.grammarQuiz);
+          console.log('Has story:', !!lessonData.story);
+        }
+        if (lessonData && lessonData.vocabulary && lessonData.grammar && lessonData.grammarQuiz && lessonData.story) {
+          // Validate the structure
+          if (Array.isArray(lessonData.vocabulary) && 
+              lessonData.grammar.examples && 
+              Array.isArray(lessonData.grammar.examples) &&
+              lessonData.grammarQuiz &&
+              Array.isArray(lessonData.grammarQuiz) &&
+              lessonData.writingQuiz &&
+              Array.isArray(lessonData.writingQuiz) &&
+              lessonData.story.aligned && 
+              Array.isArray(lessonData.story.aligned) &&
+              lessonData.story.sentence) {
+            
+            // Validate story length based on HSK level
+            const storyText = lessonData.story.sentence;
+            const sentenceCount = (storyText.match(/[.!?]+/g) || []).length;
+            const minSentences = skillLevel === 'HSK5' || skillLevel === 'HSK6' ? 5 : 3;
+            const maxSentences = skillLevel === 'HSK5' || skillLevel === 'HSK6' ? 10 : 5;
+            
+            if (sentenceCount < minSentences || sentenceCount > maxSentences) {
+              console.log(`Story has ${sentenceCount} sentences, but ${skillLevel} requires ${minSentences}-${maxSentences} sentences. Regenerating...`);
+              lastError = `Story length validation failed: got ${sentenceCount} sentences, need ${minSentences}-${maxSentences} for ${skillLevel}`;
+              attempt++;
+              continue;
+            }
+            
+            // Validate grammar examples count
+            const grammarExamplesCount = lessonData.grammar.examples.length;
+            if (grammarExamplesCount !== 5) {
+              console.log(`Grammar has ${grammarExamplesCount} examples, but requires exactly 5 examples. Regenerating...`);
+              lastError = `Grammar examples validation failed: got ${grammarExamplesCount} examples, need exactly 5`;
+              attempt++;
+              continue;
+            }
+            
+            // Validate writing quiz count
+            const writingQuizCount = lessonData.writingQuiz.length;
+            if (writingQuizCount !== 5) {
+              console.log(`Writing quiz has ${writingQuizCount} questions, but requires exactly 5 questions. Regenerating...`);
+              lastError = `Writing quiz validation failed: got ${writingQuizCount} questions, need exactly 5`;
+              attempt++;
+              continue;
+            }
+            
+            return NextResponse.json({
+              vocabulary: lessonData.vocabulary,
+              grammar: lessonData.grammar,
+              grammarQuiz: lessonData.grammarQuiz,
+              writingQuiz: lessonData.writingQuiz,
+              story: lessonData.story,
+              isAIGenerated: true
+            });
+          } else {
+            lastError = 'AI response missing required arrays or fields.';
           }
         } else {
-          lastError = 'Unexpected content type from AI.';
+          lastError = 'AI response missing vocabulary, grammar, grammarQuiz, or story sections.';
         }
       } catch (apiError: unknown) {
         if (

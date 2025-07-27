@@ -154,27 +154,27 @@ function getTopicFallbackVocab(subject: string, skillLevel: SkillLevel): VocabWo
   const topicVocabMap: Record<string, VocabWord[]> = {
     'Food': [
       { chinese: "食物", pinyin: "shíwù", english: "food" },
-      { chinese: "菜", pinyin: "cài", english: "dish" },
-      { chinese: "饭", pinyin: "fàn", english: "rice/meal" },
       { chinese: "餐厅", pinyin: "cāntīng", english: "restaurant" },
       { chinese: "厨房", pinyin: "chúfáng", english: "kitchen" },
       { chinese: "味道", pinyin: "wèidào", english: "taste" },
       { chinese: "营养", pinyin: "yíngyǎng", english: "nutrition" },
-      { chinese: "健康", pinyin: "jiànkāng", english: "healthy" },
       { chinese: "水果", pinyin: "shuǐguǒ", english: "fruit" },
-      { chinese: "蔬菜", pinyin: "shūcài", english: "vegetables" }
+      { chinese: "蔬菜", pinyin: "shūcài", english: "vegetables" },
+      { chinese: "饮料", pinyin: "yǐnliào", english: "beverage" },
+      { chinese: "甜点", pinyin: "tiándiǎn", english: "dessert" },
+      { chinese: "零食", pinyin: "língshí", english: "snack" }
     ],
     'Travel': [
       { chinese: "旅行", pinyin: "lǚxíng", english: "travel" },
       { chinese: "旅游", pinyin: "lǚyóu", english: "tourism" },
       { chinese: "飞机", pinyin: "fēijī", english: "airplane" },
-      { chinese: "火车", pinyin: "huǒchē", english: "train" },
       { chinese: "酒店", pinyin: "jiǔdiàn", english: "hotel" },
       { chinese: "景点", pinyin: "jǐngdiǎn", english: "scenic spot" },
       { chinese: "导游", pinyin: "dǎoyóu", english: "tour guide" },
       { chinese: "护照", pinyin: "hùzhào", english: "passport" },
-      { chinese: "签证", pinyin: "qiānzhèng", english: "visa" },
-      { chinese: "机场", pinyin: "jīchǎng", english: "airport" }
+      { chinese: "机场", pinyin: "jīchǎng", english: "airport" },
+      { chinese: "行李", pinyin: "xíngli", english: "luggage" },
+      { chinese: "风景", pinyin: "fēngjǐng", english: "scenery" }
     ],
     'Technology': [
       { chinese: "科技", pinyin: "kējì", english: "technology" },
@@ -186,7 +186,7 @@ function getTopicFallbackVocab(subject: string, skillLevel: SkillLevel): VocabWo
       { chinese: "信息", pinyin: "xìnxī", english: "information" },
       { chinese: "互联网", pinyin: "hùliánwǎng", english: "internet" },
       { chinese: "程序", pinyin: "chéngxù", english: "program" },
-      { chinese: "系统", pinyin: "xìtǒng", english: "system" }
+      { chinese: "设备", pinyin: "shèbèi", english: "equipment" }
     ],
     'Business': [
       { chinese: "商业", pinyin: "shāngyè", english: "business" },
@@ -197,8 +197,8 @@ function getTopicFallbackVocab(subject: string, skillLevel: SkillLevel): VocabWo
       { chinese: "投资", pinyin: "tóuzī", english: "investment" },
       { chinese: "市场", pinyin: "shìchǎng", english: "market" },
       { chinese: "企业", pinyin: "qǐyè", english: "enterprise" },
-      { chinese: "管理", pinyin: "guǎnlǐ", english: "management" },
-      { chinese: "销售", pinyin: "xiāoshòu", english: "sales" }
+      { chinese: "销售", pinyin: "xiāoshòu", english: "sales" },
+      { chinese: "营销", pinyin: "yíngxiāo", english: "marketing" }
     ],
     'Environment': [
       { chinese: "环境", pinyin: "huánjìng", english: "environment" },
@@ -210,7 +210,8 @@ function getTopicFallbackVocab(subject: string, skillLevel: SkillLevel): VocabWo
       { chinese: "绿色", pinyin: "lǜsè", english: "green" },
       { chinese: "能源", pinyin: "néngyuán", english: "energy" },
       { chinese: "资源", pinyin: "zīyuán", english: "resources" },
-      { chinese: "森林", pinyin: "sēnlín", english: "forest" }
+      { chinese: "森林", pinyin: "sēnlín", english: "forest" },
+      { chinese: "海洋", pinyin: "hǎiyáng", english: "ocean" }
     ],
     'Education': [
       { chinese: "教育", pinyin: "jiàoyù", english: "education" },
@@ -226,7 +227,7 @@ function getTopicFallbackVocab(subject: string, skillLevel: SkillLevel): VocabWo
     ],
     'Health': [
       { chinese: "健康", pinyin: "jiànkāng", english: "health" },
-      { chinese: "医疗", pinyin: "yīliáo", english: "medical treatment" },
+      { chinese: "医疗", pinyin: "yīliáo", english: "medical care" },
       { chinese: "医生", pinyin: "yīshēng", english: "doctor" },
       { chinese: "医院", pinyin: "yīyuàn", english: "hospital" },
       { chinese: "治疗", pinyin: "zhìliáo", english: "treatment" },
@@ -245,8 +246,8 @@ function getTopicFallbackVocab(subject: string, skillLevel: SkillLevel): VocabWo
       { chinese: "胜利", pinyin: "shènglì", english: "victory" },
       { chinese: "失败", pinyin: "shībài", english: "defeat" },
       { chinese: "技能", pinyin: "jìnéng", english: "skill" },
-      { chinese: "身体", pinyin: "shēntǐ", english: "body" },
-      { chinese: "健康", pinyin: "jiànkāng", english: "health" }
+      { chinese: "教练", pinyin: "jiàoliàn", english: "coach" },
+      { chinese: "运动员", pinyin: "yùndòngyuán", english: "athlete" }
     ],
     'Music': [
       { chinese: "音乐", pinyin: "yīnyuè", english: "music" },
@@ -258,7 +259,7 @@ function getTopicFallbackVocab(subject: string, skillLevel: SkillLevel): VocabWo
       { chinese: "旋律", pinyin: "xuánlǜ", english: "melody" },
       { chinese: "节奏", pinyin: "jiézòu", english: "rhythm" },
       { chinese: "艺术", pinyin: "yìshù", english: "art" },
-      { chinese: "文化", pinyin: "wénhuà", english: "culture" }
+      { chinese: "表演", pinyin: "biǎoyǎn", english: "performance" }
     ],
     'Art': [
       { chinese: "艺术", pinyin: "yìshù", english: "art" },
@@ -957,7 +958,7 @@ export default function Home() {
     if (lessonData) {
       setReadingStarted(true);
       setPage(10);
-    } else {
+      } else {
       // Fallback: generate lesson if not available
       setLessonLoading(true);
       const completeLesson = await generateCompleteLesson(skillLevel, subject);
@@ -1044,7 +1045,7 @@ export default function Home() {
         
         setCurrentLesson(lessonNumber);
         setPage(100 + lessonNumber); // Use page numbers 101, 102, 103, 104 for lesson overviews
-      } catch (error) {
+    } catch (error) {
         console.error('Error in handleLessonNavigation:', error);
         setShowLoadingPage(false); // Hide loading page on error
         setCurrentLesson(lessonNumber);
@@ -1228,7 +1229,7 @@ export default function Home() {
       }
     };
 
-    return (
+        return (
       <div className="fixed left-0 top-0 h-full w-64 bg-[#FDFCDC] shadow-lg border-r border-[#FED9B7] overflow-y-auto z-10">
         <div className="p-6">
           {/* Level and Topic */}
@@ -1241,12 +1242,12 @@ export default function Home() {
               >
                 Change Level
               </button>
-            </div>
+          </div>
             <div className="mb-2">
               <span className="text-lg font-bold text-[#0081A7]">Topic:</span>
               <div className="text-sm text-[#0081A7] mt-1 break-words">
                 {subject || '—'}
-              </div>
+          </div>
             </div>
             <div className="flex justify-end">
               <button
@@ -1262,13 +1263,13 @@ export default function Home() {
           <div className="mt-8">
             {menu.map((lesson, i) => (
               <div key={lesson.name} className="mb-2">
-                <button
+    <button
                   onClick={() => handleLessonNavigation(lesson.lessonNumber)}
                   className={`w-full text-left p-3 rounded-lg transition-all duration-200 font-semibold text-sm mb-1
                     ${page === 100 + lesson.lessonNumber ? 'bg-[#00AFB9] text-white shadow-md' : 'bg-white text-[#0081A7] hover:bg-[#FED9B7] hover:text-[#F07167] border border-[#FED9B7]'}`}
                 >
                   {lesson.name}
-                </button>
+    </button>
               </div>
             ))}
           </div>
@@ -1905,7 +1906,7 @@ export default function Home() {
                       <div className="flex flex-col items-start min-w-[100px]">
                         <span className="text-2xl text-[#0081A7] font-bold">{word.chinese}</span>
                         <span className="text-[#00AFB9] text-base">{word.pinyin}</span>
-        </div>
+                  </div>
                       {/* Feedback icon */}
                       {(quizFeedback[idx] === 'correct' || matchedEng) && <span className="ml-2 text-green-600 text-2xl">✓</span>}
                       {quizFeedback[idx] === 'incorrect' && <span className="ml-2 text-red-500 text-2xl">✗</span>}
@@ -2028,8 +2029,8 @@ export default function Home() {
                     >
                       {option}
                     </button>
-                  ))}
-                </div>
+                ))}
+              </div>
                 
                 <div className="flex flex-col gap-4">
                   <div className="flex justify-between items-center">
@@ -2070,9 +2071,9 @@ export default function Home() {
                     I&apos;m not sure
                   </button>
                 </div>
-              </div>
-            )}
             </div>
+          )}
+        </div>
           )}
         {page === 6 && quizResults && (
           <div className="w-full max-w-2xl bg-[#FDFCDC] rounded-2xl shadow-lg p-8 flex flex-col items-center relative min-h-[400px]">
@@ -2095,19 +2096,19 @@ export default function Home() {
                   >
                     Next Lesson
                     </button>
-                </div>
-              )}
+                    </div>
+                  )}
               
               {quizResults.percentage >= 60 && quizResults.percentage < 90 && (
                 <div className="text-center">
                   <div className="text-6xl mb-4">😐</div>
                   <div className="text-2xl font-bold text-[#0081A7] mb-6">Almost there!</div>
-                  <button
+                    <button
                     className="px-8 py-3 bg-[#00AFB9] text-white font-semibold rounded-xl hover:bg-[#0081A7] transition-all duration-200"
                     onClick={handleQuizRetry}
-                  >
+                    >
                     Try again
-                  </button>
+                    </button>
               </div>
               )}
               
@@ -2116,7 +2117,7 @@ export default function Home() {
                   <div className="text-6xl mb-4">😢</div>
                   <div className="text-2xl font-bold text-[#0081A7] mb-6">Keep practicing!</div>
                   <div className="flex gap-4">
-                <button
+                    <button
                       className="px-6 py-3 bg-[#FED9B7] text-[#0081A7] font-semibold rounded-xl hover:bg-[#F07167] hover:text-white transition-all duration-200"
                       onClick={handleQuizRetry}
                 >
@@ -2129,10 +2130,10 @@ export default function Home() {
                       Review lesson
                     </button>
                   </div>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          </div>
+              </div>
         )}
         {page === 7 && grammarConcept && (
           <div className="w-full max-w-2xl bg-[#FDFCDC] rounded-2xl shadow-lg p-8 flex flex-col items-center relative min-h-[400px]">
@@ -2145,7 +2146,7 @@ export default function Home() {
                   <div className="text-lg font-semibold text-[#0081A7] mb-2">{grammarConcept.name}</div>
                   <div className="text-base text-[#00AFB9] mb-2">{grammarConcept.description}</div>
                   <div className="text-sm text-gray-600 italic">{grammarConcept.explanation}</div>
-                </div>
+            </div>
                 
                 <div className="flex flex-col gap-4 w-full">
                   {grammarConcept.examples.map((example, idx) => (
@@ -2200,7 +2201,7 @@ export default function Home() {
                 </div>
               </>
             )}
-          </div>
+                </div>
         )}
         {page === 8 && grammarQuizStarted && (
           <div className="w-full max-w-2xl bg-[#FDFCDC] rounded-2xl shadow-lg p-8 flex flex-col items-center relative min-h-[400px]">
@@ -2210,7 +2211,7 @@ export default function Home() {
                 <div className="text-center mb-8">
                   <div className="text-2xl text-[#0081A7] font-bold mb-2">
                     {grammarQuizQuestions[currentGrammarQuestionIndex].chinese}
-                  </div>
+              </div>
                   <div className="text-lg text-[#00AFB9] mb-4">
                     {grammarQuizQuestions[currentGrammarQuestionIndex].pinyin}
                   </div>
@@ -2232,12 +2233,12 @@ export default function Home() {
                 </div>
                 
                 <div className="flex flex-col gap-3 mb-6">
-                  <button
+                    <button
                     onClick={handleNotSure}
                     className="px-4 py-2 bg-gray-200 text-gray-500 font-medium rounded-lg hover:bg-gray-300 transition-all duration-200 text-sm self-center"
                   >
                     I&apos;m not sure
-                  </button>
+                    </button>
                 </div>
                 
                 <div className="flex justify-between items-center">
@@ -2321,9 +2322,9 @@ export default function Home() {
                           {evaluation.explanation}
                         </div>
                       </div>
-                    ))}
-                  </div>
+                  ))}
                 </div>
+              </div>
               )}
               
               {grammarQuizResults.percentage >= 80 && (
@@ -2331,12 +2332,12 @@ export default function Home() {
                   <div className="text-6xl mb-4">🎉</div>
                   <div className="text-2xl font-bold text-[#0081A7] mb-6">Great job!</div>
                   <div className="flex gap-4 justify-center">
-                    <button
+                <button
                       className="px-6 py-3 bg-[#FED9B7] text-[#0081A7] font-semibold rounded-xl hover:bg-[#F07167] hover:text-white transition-all duration-200"
                       onClick={() => setPage(1)}
-                    >
+                >
                       Start Over
-                    </button>
+                </button>
                     <button
                       className="px-6 py-3 bg-[#00AFB9] text-white font-semibold rounded-xl hover:bg-[#0081A7] transition-all duration-200"
                       onClick={handleStartReadingLesson}
@@ -2510,8 +2511,8 @@ export default function Home() {
                 <p className="text-[#00AFB9]">Learn new words related to your chosen topic</p>
               </button>
               
-              <button
-                onClick={() => {
+                <button
+                  onClick={() => {
                   setQuizStarted(true);
                   setPage(4);
                   setQuizMatches(Array(lessonData!.vocabulary.length).fill(null));
@@ -2537,10 +2538,10 @@ export default function Home() {
               >
                 <h4 className="text-xl font-bold text-[#0081A7] mb-2">Vocabulary Exercise 2: Quiz Me!</h4>
                 <p className="text-[#00AFB9]">Test your knowledge with multiple choice questions</p>
-              </button>
+                </button>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
         {page === 102 && currentLesson === 2 && (
           <div className="w-full max-w-4xl">
@@ -2591,7 +2592,7 @@ export default function Home() {
                       setReadingShowAll(false);
                       setReadingStarted(true);
                       setPage(10);
-                    } else {
+                } else {
                       console.error('lessonData or lessonData.story is missing');
                       // Fallback: try to navigate anyway
                       setReadingStarted(true);
@@ -2620,8 +2621,8 @@ export default function Home() {
                 <h4 className="text-xl font-bold text-[#0081A7] mb-2">Reading Exercise 1: Quiz Me!</h4>
                 <p className="text-[#00AFB9]">Test your reading comprehension (Coming soon)</p>
               </button>
-            </div>
-          </div>
+                    </div>
+                    </div>
         )}
 
         {page === 104 && currentLesson === 4 && (
@@ -2635,8 +2636,8 @@ export default function Home() {
                 <p className="text-[#00AFB9]">Translate English sentences to Chinese characters</p>
               </button>
             </div>
-          </div>
-        )}
+                      </div>
+                    )}
         {page === 11 && writingQuizStarted && (
           <div className="w-full max-w-2xl bg-[#FDFCDC] rounded-2xl shadow-lg p-8 flex flex-col items-center relative min-h-[400px]">
             <h3 className="text-2xl font-bold text-[#0081A7] mb-6">Writing Quiz: Translate to Chinese</h3>
@@ -2644,13 +2645,13 @@ export default function Home() {
               <div className="text-center">
                 <div className="text-[#0081A7] text-lg mb-4">Generating your writing quiz...</div>
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#00AFB9] mx-auto"></div>
-              </div>
+                  </div>
             ) : writingQuizQuestions.length > 0 ? (
               <div className="w-full">
                 <div className="text-center mb-8">
                   <div className="text-2xl text-[#0081A7] font-bold mb-2">
                     {writingQuizQuestions[currentWritingQuestionIndex].english}
-                  </div>
+                </div>
                   <div className="text-sm text-[#00AFB9]">
                     Question {currentWritingQuestionIndex + 1} of {writingQuizQuestions.length}
                   </div>
@@ -2705,9 +2706,9 @@ export default function Home() {
                     >
                       Submit Answers
                     </button>
-                  )}
-                </div>
-              </div>
+          )}
+        </div>
+      </div>
             ) : (
               <div className="text-[#0081A7] text-lg">Loading writing quiz...</div>
             )}

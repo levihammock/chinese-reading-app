@@ -428,7 +428,24 @@ OUTPUT FORMAT (respond with ONLY this JSON structure):
     {
       "chinese": "他学习中文",
       "pinyin": "Tā xuéxí zhōngwén",
-      "english": "He studies Chinese"
+      "english": "He studies Chinese",
+      "aligned": [
+        {
+          "chinese": "他",
+          "pinyin": "tā",
+          "english": "he"
+        },
+        {
+          "chinese": "学习", 
+          "pinyin": "xuéxí",
+          "english": "study"
+        },
+        {
+          "chinese": "中文",
+          "pinyin": "zhōngwén", 
+          "english": "Chinese"
+        }
+      ]
     }
   ],
   "writingQuiz": [
@@ -480,8 +497,31 @@ SPECIFIC REQUIREMENTS:
 - CRITICAL: You MUST include exactly 5 questions - no more, no less
 - These should be separate from the grammar examples (different sentences)
 - Use words from the GENERAL VOCABULARY list (can include lower-level words for sentence structure)
-- Each quiz question should include chinese, pinyin, and english
+- Each quiz question should include chinese, pinyin, english, AND aligned word-level data
 - All sentences should be relevant to "${subject}" and appropriate for ${skillLevel} level
+- Each grammarQuiz question should have this structure:
+  {
+    "chinese": "他学习中文",
+    "pinyin": "Tā xuéxí zhōngwén", 
+    "english": "He studies Chinese",
+    "aligned": [
+      {
+        "chinese": "他",
+        "pinyin": "tā",
+        "english": "he"
+      },
+      {
+        "chinese": "学习", 
+        "pinyin": "xuéxí",
+        "english": "study"
+      },
+      {
+        "chinese": "中文",
+        "pinyin": "zhōngwén", 
+        "english": "Chinese"
+      }
+    ]
+  }
 
 4. WRITING QUIZ QUESTIONS - USE GENERAL VOCABULARY:
 - CRITICAL: Create EXACTLY 5 English sentences that students will translate into Chinese characters

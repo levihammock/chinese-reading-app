@@ -118,3 +118,4 @@ public
 test-api.js
 test-https.js
 cacert.pem
+server.log

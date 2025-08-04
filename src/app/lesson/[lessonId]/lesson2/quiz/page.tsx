@@ -20,6 +20,23 @@ interface GrammarQuestion {
 // grammarQuiz is an array directly, not an object with questions property
 type GrammarQuiz = GrammarQuestion[];
 
+interface GrammarEvaluation {
+  questionIndex: number;
+  isCorrect: boolean;
+  isPartiallyCorrect: boolean;
+  explanation: string;
+  correctAnswer: string;
+  studentAnswer: string;
+}
+
+interface GrammarSummary {
+  correctCount: number;
+  partialCount: number;
+  totalCount: number;
+  percentage: number;
+  overallFeedback: string;
+}
+
 interface PageProps {
   params: Promise<{
     lessonId: string;
@@ -29,8 +46,8 @@ interface PageProps {
 export default function GrammarQuizPage({ params }: PageProps) {
   const [grammarQuiz, setGrammarQuiz] = useState<GrammarQuiz | null>(null);
   const [answers, setAnswers] = useState<string[]>([]);
-  const [evaluations, setEvaluations] = useState<any[]>([]);
-  const [summary, setSummary] = useState<any>(null);
+  const [evaluations, setEvaluations] = useState<GrammarEvaluation[]>([]);
+  const [summary, setSummary] = useState<GrammarSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [lessonData, setLessonData] = useState<Record<string, unknown> | null>(null);

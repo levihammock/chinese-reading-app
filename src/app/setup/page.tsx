@@ -99,7 +99,7 @@ export default function SetupPage() {
         /* Main Content */
         <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
           <div className="w-full max-w-md bg-[#FDFCDC] rounded-2xl shadow-lg p-8">
-            <h2 className="text-3xl font-bold text-[#0081A7] mb-6 text-center">Let's get started</h2>
+            <h2 className="text-3xl font-bold text-[#0081A7] mb-6 text-center">Let&apos;s get started</h2>
             <p className="text-gray-600 mb-6 text-center">Choose your level and topic</p>
             
             <form onSubmit={handleStartLesson} className="space-y-6">

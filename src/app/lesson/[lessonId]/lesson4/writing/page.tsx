@@ -13,6 +13,23 @@ interface WritingQuestion {
 
 type WritingQuiz = WritingQuestion[];
 
+interface WritingEvaluation {
+  questionIndex: number;
+  isCorrect: boolean;
+  isPartiallyCorrect: boolean;
+  explanation: string;
+  correctAnswer: string;
+  studentAnswer: string;
+}
+
+interface WritingSummary {
+  correctCount: number;
+  partialCount: number;
+  totalCount: number;
+  percentage: number;
+  overallFeedback: string;
+}
+
 interface PageProps {
   params: Promise<{
     lessonId: string;
@@ -22,8 +39,8 @@ interface PageProps {
 export default function WritingPage({ params }: PageProps) {
   const [writingQuiz, setWritingQuiz] = useState<WritingQuiz | null>(null);
   const [answers, setAnswers] = useState<string[]>([]);
-  const [evaluations, setEvaluations] = useState<any[]>([]);
-  const [summary, setSummary] = useState<any>(null);
+  const [evaluations, setEvaluations] = useState<WritingEvaluation[]>([]);
+  const [summary, setSummary] = useState<WritingSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [lessonData, setLessonData] = useState<Record<string, unknown> | null>(null);
